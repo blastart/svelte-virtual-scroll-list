@@ -63,12 +63,22 @@ function get_slot_changes(definition, $$scope, dirty, fn) {
     }
     return $$scope.dirty;
 }
-function update_slot(slot, slot_definition, ctx, $$scope, dirty, get_slot_changes_fn, get_slot_context_fn) {
-    const slot_changes = get_slot_changes(slot_definition, $$scope, dirty, get_slot_changes_fn);
+function update_slot_base(slot, slot_definition, ctx, $$scope, slot_changes, get_slot_context_fn) {
     if (slot_changes) {
         const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
         slot.p(slot_context, slot_changes);
     }
+}
+function get_all_dirty_from_scope($$scope) {
+    if ($$scope.ctx.length > 32) {
+        const dirty = [];
+        const length = $$scope.ctx.length / 32;
+        for (let i = 0; i < length; i++) {
+            dirty[i] = -1;
+        }
+        return dirty;
+    }
+    return -1;
 }
 function compute_slots(slots) {
     const result = {};
@@ -77,7 +87,7 @@ function compute_slots(slots) {
     }
     return result;
 }
-function set_store_value(store, ret, value = ret) {
+function set_store_value(store, ret, value) {
     store.set(value);
     return ret;
 }
@@ -116,9 +126,25 @@ function loop(callback) {
         }
     };
 }
-
 function append(target, node) {
     target.appendChild(node);
+}
+function get_root_for_style(node) {
+    if (!node)
+        return document;
+    const root = node.getRootNode ? node.getRootNode() : node.ownerDocument;
+    if (root && root.host) {
+        return root;
+    }
+    return node.ownerDocument;
+}
+function append_empty_stylesheet(node) {
+    const style_element = element('style');
+    append_stylesheet(get_root_for_style(node), style_element);
+    return style_element.sheet;
+}
+function append_stylesheet(node, style) {
+    append(node.head || node, style);
 }
 function insert(target, node, anchor) {
     target.insertBefore(node, anchor || null);
@@ -163,18 +189,25 @@ function set_data(text, data) {
         text.data = data;
 }
 function set_style(node, key, value, important) {
-    node.style.setProperty(key, value, important ? 'important' : '');
+    if (value === null) {
+        node.style.removeProperty(key);
+    }
+    else {
+        node.style.setProperty(key, value, important ? 'important' : '');
+    }
 }
 function toggle_class(element, name, toggle) {
     element.classList[toggle ? 'add' : 'remove'](name);
 }
-function custom_event(type, detail) {
+function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
     const e = document.createEvent('CustomEvent');
-    e.initCustomEvent(type, false, false, detail);
+    e.initCustomEvent(type, bubbles, cancelable, detail);
     return e;
 }
 
-const active_docs = new Set();
+// we need to store the information for multiple documents because a Svelte application could also contain iframes
+// https://github.com/sveltejs/svelte/issues/3624
+const managed_styles = new Map();
 let active = 0;
 // https://github.com/darkskyapp/string-hash/blob/master/index.js
 function hash(str) {
@@ -183,6 +216,11 @@ function hash(str) {
     while (i--)
         hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
     return hash >>> 0;
+}
+function create_style_information(doc, node) {
+    const info = { stylesheet: append_empty_stylesheet(node), rules: {} };
+    managed_styles.set(doc, info);
+    return info;
 }
 function create_rule(node, a, b, duration, delay, ease, fn, uid = 0) {
     const step = 16.666 / duration;
@@ -193,12 +231,10 @@ function create_rule(node, a, b, duration, delay, ease, fn, uid = 0) {
     }
     const rule = keyframes + `100% {${fn(b, 1 - b)}}\n}`;
     const name = `__svelte_${hash(rule)}_${uid}`;
-    const doc = node.ownerDocument;
-    active_docs.add(doc);
-    const stylesheet = doc.__svelte_stylesheet || (doc.__svelte_stylesheet = doc.head.appendChild(element('style')).sheet);
-    const current_rules = doc.__svelte_rules || (doc.__svelte_rules = {});
-    if (!current_rules[name]) {
-        current_rules[name] = true;
+    const doc = get_root_for_style(node);
+    const { stylesheet, rules } = managed_styles.get(doc) || create_style_information(doc, node);
+    if (!rules[name]) {
+        rules[name] = true;
         stylesheet.insertRule(`@keyframes ${name} ${rule}`, stylesheet.cssRules.length);
     }
     const animation = node.style.animation || '';
@@ -224,14 +260,14 @@ function clear_rules() {
     raf(() => {
         if (active)
             return;
-        active_docs.forEach(doc => {
-            const stylesheet = doc.__svelte_stylesheet;
+        managed_styles.forEach(info => {
+            const { stylesheet } = info;
             let i = stylesheet.cssRules.length;
             while (i--)
                 stylesheet.deleteRule(i);
-            doc.__svelte_rules = {};
+            info.rules = {};
         });
-        active_docs.clear();
+        managed_styles.clear();
     });
 }
 
@@ -324,16 +360,18 @@ function onDestroy(fn) {
 }
 function createEventDispatcher() {
     const component = get_current_component();
-    return (type, detail) => {
+    return (type, detail, { cancelable = false } = {}) => {
         const callbacks = component.$$.callbacks[type];
         if (callbacks) {
             // TODO are there situations where events could be dispatched
             // in a server (non-DOM) environment?
-            const event = custom_event(type, detail);
+            const event = custom_event(type, detail, { cancelable });
             callbacks.slice().forEach(fn => {
                 fn.call(component, event);
             });
+            return !event.defaultPrevented;
         }
+        return true;
     };
 }
 
@@ -356,22 +394,40 @@ function tick() {
 function add_render_callback(fn) {
     render_callbacks.push(fn);
 }
-let flushing = false;
+// flush() calls callbacks in this order:
+// 1. All beforeUpdate callbacks, in order: parents before children
+// 2. All bind:this callbacks, in reverse order: children before parents.
+// 3. All afterUpdate callbacks, in order: parents before children. EXCEPT
+//    for afterUpdates called during the initial onMount, which are called in
+//    reverse order: children before parents.
+// Since callbacks might update component values, which could trigger another
+// call to flush(), the following steps guard against this:
+// 1. During beforeUpdate, any updated components will be added to the
+//    dirty_components array and will cause a reentrant call to flush(). Because
+//    the flush index is kept outside the function, the reentrant call will pick
+//    up where the earlier call left off and go through all dirty components. The
+//    current_component value is saved and restored so that the reentrant call will
+//    not interfere with the "parent" flush() call.
+// 2. bind:this callbacks cannot trigger new flush() calls.
+// 3. During afterUpdate, any updated components will NOT have their afterUpdate
+//    callback called a second time; the seen_callbacks set, outside the flush()
+//    function, guarantees this behavior.
 const seen_callbacks = new Set();
+let flushidx = 0; // Do *not* move this inside the flush() function
 function flush() {
-    if (flushing)
-        return;
-    flushing = true;
+    const saved_component = current_component;
     do {
         // first, call beforeUpdate functions
         // and update components
-        for (let i = 0; i < dirty_components.length; i += 1) {
-            const component = dirty_components[i];
+        while (flushidx < dirty_components.length) {
+            const component = dirty_components[flushidx];
+            flushidx++;
             set_current_component(component);
             update(component.$$);
         }
         set_current_component(null);
         dirty_components.length = 0;
+        flushidx = 0;
         while (binding_callbacks.length)
             binding_callbacks.pop()();
         // then, once components are updated, call
@@ -391,8 +447,8 @@ function flush() {
         flush_callbacks.pop()();
     }
     update_scheduled = false;
-    flushing = false;
     seen_callbacks.clear();
+    set_current_component(saved_component);
 }
 function update($$) {
     if ($$.fragment !== null) {
@@ -609,7 +665,7 @@ function make_dirty(component, i) {
     }
     component.$$.dirty[(i / 31) | 0] |= (1 << (i % 31));
 }
-function init(component, options, instance, create_fragment, not_equal, props, dirty = [-1]) {
+function init(component, options, instance, create_fragment, not_equal, props, append_styles, dirty = [-1]) {
     const parent_component = current_component;
     set_current_component(component);
     const $$ = component.$$ = {
@@ -626,12 +682,14 @@ function init(component, options, instance, create_fragment, not_equal, props, d
         on_disconnect: [],
         before_update: [],
         after_update: [],
-        context: new Map(parent_component ? parent_component.$$.context : options.context || []),
+        context: new Map(options.context || (parent_component ? parent_component.$$.context : [])),
         // everything else
         callbacks: blank_object(),
         dirty,
-        skip_bound: false
+        skip_bound: false,
+        root: options.target || parent_component.$$.root
     };
+    append_styles && append_styles($$.root);
     let ready = false;
     $$.ctx = instance
         ? instance(component, options.props || {}, (i, ret, ...rest) => {
@@ -699,20 +757,24 @@ function cubicOut(t) {
     return f * f * f + 1.0;
 }
 
-function flip(node, animation, params = {}) {
+function flip(node, { from, to }, params = {}) {
     const style = getComputedStyle(node);
     const transform = style.transform === 'none' ? '' : style.transform;
-    const scaleX = animation.from.width / node.clientWidth;
-    const scaleY = animation.from.height / node.clientHeight;
-    const dx = (animation.from.left - animation.to.left) / scaleX;
-    const dy = (animation.from.top - animation.to.top) / scaleY;
-    const d = Math.sqrt(dx * dx + dy * dy);
+    const [ox, oy] = style.transformOrigin.split(' ').map(parseFloat);
+    const dx = (from.left + from.width * ox / to.width) - (to.left + ox);
+    const dy = (from.top + from.height * oy / to.height) - (to.top + oy);
     const { delay = 0, duration = (d) => Math.sqrt(d) * 120, easing = cubicOut } = params;
     return {
         delay,
-        duration: is_function(duration) ? duration(d) : duration,
+        duration: is_function(duration) ? duration(Math.sqrt(dx * dx + dy * dy)) : duration,
         easing,
-        css: (_t, u) => `transform: ${transform} translate(${u * dx}px, ${u * dy}px);`
+        css: (t, u) => {
+            const x = u * dx;
+            const y = u * dy;
+            const sx = t + u * from.width / to.width;
+            const sy = t + u * from.height / to.height;
+            return `transform: ${transform} translate(${x}px, ${y}px) scale(${sx}, ${sy});`;
+        }
     };
 }
 
@@ -1041,7 +1103,7 @@ class Virtual {
     }
 }
 
-/* src/Item.svelte generated by Svelte v3.38.2 */
+/* src/Item.svelte generated by Svelte v3.48.0 */
 
 function create_fragment$8(ctx) {
 	let div;
@@ -1068,7 +1130,16 @@ function create_fragment$8(ctx) {
 		p(ctx, [dirty]) {
 			if (default_slot) {
 				if (default_slot.p && (!current || dirty & /*$$scope*/ 16)) {
-					update_slot(default_slot, default_slot_template, ctx, /*$$scope*/ ctx[4], dirty, null, null);
+					update_slot_base(
+						default_slot,
+						default_slot_template,
+						ctx,
+						/*$$scope*/ ctx[4],
+						!current
+						? get_all_dirty_from_scope(/*$$scope*/ ctx[4])
+						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[4], dirty, null),
+						null
+					);
 				}
 			}
 		},
@@ -1124,17 +1195,17 @@ function instance$8($$self, $$props, $$invalidate) {
 	}
 
 	function div_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			itemDiv = $$value;
 			$$invalidate(0, itemDiv);
 		});
 	}
 
 	$$self.$$set = $$props => {
-		if ("horizontal" in $$props) $$invalidate(1, horizontal = $$props.horizontal);
-		if ("uniqueKey" in $$props) $$invalidate(2, uniqueKey = $$props.uniqueKey);
-		if ("type" in $$props) $$invalidate(3, type = $$props.type);
-		if ("$$scope" in $$props) $$invalidate(4, $$scope = $$props.$$scope);
+		if ('horizontal' in $$props) $$invalidate(1, horizontal = $$props.horizontal);
+		if ('uniqueKey' in $$props) $$invalidate(2, uniqueKey = $$props.uniqueKey);
+		if ('type' in $$props) $$invalidate(3, type = $$props.type);
+		if ('$$scope' in $$props) $$invalidate(4, $$scope = $$props.$$scope);
 	};
 
 	return [itemDiv, horizontal, uniqueKey, type, $$scope, slots, div_binding];
@@ -1147,7 +1218,7 @@ class Item extends SvelteComponent {
 	}
 }
 
-/* src/VirtualScroll.svelte generated by Svelte v3.38.2 */
+/* src/VirtualScroll.svelte generated by Svelte v3.48.0 */
 const get_footer_slot_changes = dirty => ({ data: dirty[0] & /*displayItems*/ 4 });
 const get_footer_slot_context = ctx => ({ data: /*dataItem*/ ctx[39] });
 
@@ -1230,7 +1301,16 @@ function create_default_slot_2(ctx) {
 		p(ctx, dirty) {
 			if (header_slot) {
 				if (header_slot.p && (!current || dirty[0] & /*$$scope, displayItems*/ 536870916)) {
-					update_slot(header_slot, header_slot_template, ctx, /*$$scope*/ ctx[29], dirty, get_header_slot_changes, get_header_slot_context);
+					update_slot_base(
+						header_slot,
+						header_slot_template,
+						ctx,
+						/*$$scope*/ ctx[29],
+						!current
+						? get_all_dirty_from_scope(/*$$scope*/ ctx[29])
+						: get_slot_changes(header_slot_template, /*$$scope*/ ctx[29], dirty, get_header_slot_changes),
+						get_header_slot_context
+					);
 				}
 			}
 		},
@@ -1272,7 +1352,16 @@ function create_default_slot_1(ctx) {
 		p(ctx, dirty) {
 			if (default_slot) {
 				if (default_slot.p && (!current || dirty[0] & /*$$scope, displayItems*/ 536870916)) {
-					update_slot(default_slot, default_slot_template, ctx, /*$$scope*/ ctx[29], dirty, get_default_slot_changes, get_default_slot_context);
+					update_slot_base(
+						default_slot,
+						default_slot_template,
+						ctx,
+						/*$$scope*/ ctx[29],
+						!current
+						? get_all_dirty_from_scope(/*$$scope*/ ctx[29])
+						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[29], dirty, get_default_slot_changes),
+						get_default_slot_context
+					);
 				}
 			}
 		},
@@ -1419,7 +1508,16 @@ function create_default_slot$5(ctx) {
 		p(ctx, dirty) {
 			if (footer_slot) {
 				if (footer_slot.p && (!current || dirty[0] & /*$$scope, displayItems*/ 536870916)) {
-					update_slot(footer_slot, footer_slot_template, ctx, /*$$scope*/ ctx[29], dirty, get_footer_slot_changes, get_footer_slot_context);
+					update_slot_base(
+						footer_slot,
+						footer_slot_template,
+						ctx,
+						/*$$scope*/ ctx[29],
+						!current
+						? get_all_dirty_from_scope(/*$$scope*/ ctx[29])
+						: get_slot_changes(footer_slot_template, /*$$scope*/ ctx[29], dirty, get_footer_slot_changes),
+						get_footer_slot_context
+					);
 				}
 			}
 		},
@@ -1479,8 +1577,8 @@ function create_fragment$7(ctx) {
 			div1 = element("div");
 			set_style(div0, "padding", /*paddingStyle*/ ctx[3]);
 			attr(div1, "class", "shepherd");
-			set_style(div1, "width", /*isHorizontal*/ ctx[1] ? "0px" : "100%");
-			set_style(div1, "height", /*isHorizontal*/ ctx[1] ? "100%" : "0px");
+			set_style(div1, "width", /*isHorizontal*/ ctx[1] ? '0px' : '100%');
+			set_style(div1, "height", /*isHorizontal*/ ctx[1] ? '100%' : '0px');
 			set_style(div2, "overflow-y", "auto");
 			set_style(div2, "height", "inherit");
 		},
@@ -1566,11 +1664,11 @@ function create_fragment$7(ctx) {
 			}
 
 			if (!current || dirty[0] & /*isHorizontal*/ 2) {
-				set_style(div1, "width", /*isHorizontal*/ ctx[1] ? "0px" : "100%");
+				set_style(div1, "width", /*isHorizontal*/ ctx[1] ? '0px' : '100%');
 			}
 
 			if (!current || dirty[0] & /*isHorizontal*/ 2) {
-				set_style(div1, "height", /*isHorizontal*/ ctx[1] ? "100%" : "0px");
+				set_style(div1, "height", /*isHorizontal*/ ctx[1] ? '100%' : '0px');
 			}
 		},
 		i(local) {
@@ -1716,7 +1814,7 @@ function instance$7($$self, $$props, $$invalidate) {
 			scrollToOffset(offset);
 
 			// check if it's really scrolled to the bottom
-			// maybe list doesn't render and calculate to last range
+			// maybe list doesn't render and calculate to last range,
 			// so we need retry in next event loop until it really at bottom
 			setTimeout(
 				() => {
@@ -1807,31 +1905,31 @@ function instance$7($$self, $$props, $$invalidate) {
 	}
 
 	function div1_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			shepherd = $$value;
 			$$invalidate(5, shepherd);
 		});
 	}
 
 	function div2_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			root = $$value;
 			$$invalidate(4, root);
 		});
 	}
 
 	$$self.$$set = $$props => {
-		if ("key" in $$props) $$invalidate(0, key = $$props.key);
-		if ("data" in $$props) $$invalidate(9, data = $$props.data);
-		if ("keeps" in $$props) $$invalidate(10, keeps = $$props.keeps);
-		if ("estimateSize" in $$props) $$invalidate(11, estimateSize = $$props.estimateSize);
-		if ("isHorizontal" in $$props) $$invalidate(1, isHorizontal = $$props.isHorizontal);
-		if ("start" in $$props) $$invalidate(12, start = $$props.start);
-		if ("offset" in $$props) $$invalidate(13, offset = $$props.offset);
-		if ("pageMode" in $$props) $$invalidate(14, pageMode = $$props.pageMode);
-		if ("topThreshold" in $$props) $$invalidate(15, topThreshold = $$props.topThreshold);
-		if ("bottomThreshold" in $$props) $$invalidate(16, bottomThreshold = $$props.bottomThreshold);
-		if ("$$scope" in $$props) $$invalidate(29, $$scope = $$props.$$scope);
+		if ('key' in $$props) $$invalidate(0, key = $$props.key);
+		if ('data' in $$props) $$invalidate(9, data = $$props.data);
+		if ('keeps' in $$props) $$invalidate(10, keeps = $$props.keeps);
+		if ('estimateSize' in $$props) $$invalidate(11, estimateSize = $$props.estimateSize);
+		if ('isHorizontal' in $$props) $$invalidate(1, isHorizontal = $$props.isHorizontal);
+		if ('start' in $$props) $$invalidate(12, start = $$props.start);
+		if ('offset' in $$props) $$invalidate(13, offset = $$props.offset);
+		if ('pageMode' in $$props) $$invalidate(14, pageMode = $$props.pageMode);
+		if ('topThreshold' in $$props) $$invalidate(15, topThreshold = $$props.topThreshold);
+		if ('bottomThreshold' in $$props) $$invalidate(16, bottomThreshold = $$props.bottomThreshold);
+		if ('$$scope' in $$props) $$invalidate(29, $$scope = $$props.$$scope);
 	};
 
 	$$self.$$.update = () => {
@@ -1917,6 +2015,7 @@ class VirtualScroll extends SvelteComponent {
 				scrollToIndex: 24,
 				scrollToBottom: 25
 			},
+			null,
 			[-1, -1]
 		);
 	}
@@ -1996,7 +2095,7 @@ function asyncTimeout(time) {
     return new Promise(resolve => setTimeout(resolve, time))
 }
 
-/* example/TestItem.svelte generated by Svelte v3.38.2 */
+/* example/TestItem.svelte generated by Svelte v3.48.0 */
 
 function create_fragment$6(ctx) {
 	let div;
@@ -2043,8 +2142,8 @@ function instance$6($$self, $$props, $$invalidate) {
 	let { height } = $$props;
 
 	$$self.$$set = $$props => {
-		if ("uniqueKey" in $$props) $$invalidate(0, uniqueKey = $$props.uniqueKey);
-		if ("height" in $$props) $$invalidate(1, height = $$props.height);
+		if ('uniqueKey' in $$props) $$invalidate(0, uniqueKey = $$props.uniqueKey);
+		if ('height' in $$props) $$invalidate(1, height = $$props.height);
 	};
 
 	return [uniqueKey, height];
@@ -2057,7 +2156,7 @@ class TestItem extends SvelteComponent {
 	}
 }
 
-/* example/SimpleList.svelte generated by Svelte v3.38.2 */
+/* example/SimpleList.svelte generated by Svelte v3.48.0 */
 
 function get_each_context$2(ctx, list, i) {
 	const child_ctx = ctx.slice();
@@ -2122,6 +2221,7 @@ function create_header_slot$4(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -2141,6 +2241,7 @@ function create_footer_slot$4(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -2369,7 +2470,7 @@ function instance$5($$self, $$props, $$invalidate) {
 	}
 
 	function virtualscroll_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			list = $$value;
 			$$invalidate(1, list);
 		});
@@ -2406,16 +2507,15 @@ const subscriber_queue = [];
  */
 function writable(value, start = noop) {
     let stop;
-    const subscribers = [];
+    const subscribers = new Set();
     function set(new_value) {
         if (safe_not_equal(value, new_value)) {
             value = new_value;
             if (stop) { // store is ready
                 const run_queue = !subscriber_queue.length;
-                for (let i = 0; i < subscribers.length; i += 1) {
-                    const s = subscribers[i];
-                    s[1]();
-                    subscriber_queue.push(s, value);
+                for (const subscriber of subscribers) {
+                    subscriber[1]();
+                    subscriber_queue.push(subscriber, value);
                 }
                 if (run_queue) {
                     for (let i = 0; i < subscriber_queue.length; i += 2) {
@@ -2431,17 +2531,14 @@ function writable(value, start = noop) {
     }
     function subscribe(run, invalidate = noop) {
         const subscriber = [run, invalidate];
-        subscribers.push(subscriber);
-        if (subscribers.length === 1) {
+        subscribers.add(subscriber);
+        if (subscribers.size === 1) {
             stop = start(set) || noop;
         }
         run(value);
         return () => {
-            const index = subscribers.indexOf(subscriber);
-            if (index !== -1) {
-                subscribers.splice(index, 1);
-            }
-            if (subscribers.length === 0) {
+            subscribers.delete(subscriber);
+            if (subscribers.size === 0) {
                 stop();
                 stop = null;
             }
@@ -2450,7 +2547,7 @@ function writable(value, start = noop) {
     return { set, update, subscribe };
 }
 
-/* example/SimpleListStore.svelte generated by Svelte v3.38.2 */
+/* example/SimpleListStore.svelte generated by Svelte v3.48.0 */
 
 function get_each_context$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
@@ -2515,6 +2612,7 @@ function create_header_slot$3(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -2534,6 +2632,7 @@ function create_footer_slot$3(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -2784,7 +2883,7 @@ function instance$4($$self, $$props, $$invalidate) {
 	}
 
 	function virtualscroll_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			list = $$value;
 			$$invalidate(0, list);
 		});
@@ -2822,7 +2921,7 @@ class SimpleListStore extends SvelteComponent {
 	}
 }
 
-/* example/InfiniteList.svelte generated by Svelte v3.38.2 */
+/* example/InfiniteList.svelte generated by Svelte v3.48.0 */
 
 function create_default_slot$2(ctx) {
 	let testitem;
@@ -2879,6 +2978,7 @@ function create_header_slot$2(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -2898,6 +2998,7 @@ function create_footer_slot$2(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -3058,7 +3159,7 @@ function instance$3($$self, $$props, $$invalidate) {
 	}
 
 	function virtualscroll_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			list = $$value;
 			$$invalidate(1, list);
 		});
@@ -3086,7 +3187,7 @@ class InfiniteList extends SvelteComponent {
 	}
 }
 
-/* example/PageList.svelte generated by Svelte v3.38.2 */
+/* example/PageList.svelte generated by Svelte v3.48.0 */
 
 function create_default_slot$1(ctx) {
 	let testitem;
@@ -3143,6 +3244,7 @@ function create_header_slot$1(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -3162,6 +3264,7 @@ function create_footer_slot$1(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -3294,7 +3397,7 @@ function instance$2($$self, $$props, $$invalidate) {
 	const click_handler = () => list.scrollToOffset(0);
 
 	function virtualscroll_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			list = $$value;
 			$$invalidate(1, list);
 		});
@@ -3310,7 +3413,7 @@ class PageList extends SvelteComponent {
 	}
 }
 
-/* example/ChangeableData.svelte generated by Svelte v3.38.2 */
+/* example/ChangeableData.svelte generated by Svelte v3.48.0 */
 
 function create_default_slot(ctx) {
 	let testitem;
@@ -3367,6 +3470,7 @@ function create_header_slot(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -3386,6 +3490,7 @@ function create_footer_slot(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 		},
+		p: noop,
 		d(detaching) {
 			if (detaching) detach(div);
 		}
@@ -3543,7 +3648,7 @@ function instance$1($$self, $$props, $$invalidate) {
 	}
 
 	function virtualscroll_binding($$value) {
-		binding_callbacks[$$value ? "unshift" : "push"](() => {
+		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			list = $$value;
 			$$invalidate(1, list);
 		});
@@ -3577,7 +3682,7 @@ class ChangeableData extends SvelteComponent {
 	}
 }
 
-/* example/App.svelte generated by Svelte v3.38.2 */
+/* example/App.svelte generated by Svelte v3.48.0 */
 
 function get_each_context(ctx, list, i) {
 	const child_ctx = ctx.slice();
@@ -3795,5 +3900,5 @@ class App extends SvelteComponent {
 
 var main = new App({target: document.body});
 
-export default main;
+export { main as default };
 //# sourceMappingURL=bundle.js.map
