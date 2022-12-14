@@ -1,3 +1,4 @@
 {
-  "extends": "@tsconfig/svelte"
+  "extends": "@tsconfig/svelte",
+  "exclude": ["node_modules", "dist/**/*"]
 }

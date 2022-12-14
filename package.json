@@ -28,16 +28,21 @@
     "types"
   ],
   "devDependencies": {
+    "@babel/core": "^7.20.5",
+    "@babel/eslint-parser": "^7.19.1",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@tsconfig/svelte": "^3.0.0",
+    "eslint": "^8.29.0",
+    "eslint-plugin-svelte": "^2.14.0",
     "rollup": "^2.75.7",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-svelte": "^7.0.0",
     "sirv-cli": "^2.0.2",
     "sveld": "^0.17.2",
-    "svelte": "^3.48.0",
+    "svelte": "^3.54.0",
     "svelte-check": "^2.7.2",
+    "svelte-eslint-parser": "^0.22.1",
     "typescript": "^4.7.4"
   },
   "peerDependencies": {
