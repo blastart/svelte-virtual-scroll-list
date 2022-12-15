@@ -13,7 +13,22 @@
         {name: "SimpleListStore", component: SimpleListStore},
     ]
 
-    let currentPage = pages[0]
+
+    const getPageByName = name => pages.find(page => page.name === name) || pages[0]
+    const getPageFromUrlParam = () => getPageByName(
+        decodeURIComponent(
+            (new URL(window.location)).searchParams.get("page") || ""
+        )
+    )
+
+    const setActivePage = ({name}) => {
+        currentPage = getPageByName(name)
+        const paramValue = encodeURIComponent(name)
+        const url = new URL(window.location)
+        url.searchParams.set("page", paramValue)
+        window.history.pushState({}, "", url)
+    }
+    let currentPage = getPageFromUrlParam()
 </script>
 
 <main>
@@ -21,10 +36,11 @@
     </h1>
     <div class="page-selector-container">
         {#each pages as page}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <span
-                class="page-selector"
-                on:click={() => currentPage = page}
-                class:active={currentPage.name === page.name}
+            class="page-selector"
+            on:click={() => setActivePage(page) }
+            class:active={currentPage.name === page.name}
         >{page.name}</span>
         {/each}
         <a class="source" href="https://github.com/v1ack/svelte-virtual-scroll-list/tree/master/example">Source</a>
