@@ -11,7 +11,7 @@
     let list
 
     function addItems(top = true, count = 10) {
-        let new_items = []
+        const new_items = []
         for (let i = 0; i < count; i++)
             new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
         if (top)

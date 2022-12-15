@@ -4,12 +4,12 @@
 
 const DIRECTION_TYPE = {
     FRONT: "FRONT", // scroll up or left
-    BEHIND: "BEHIND", // scroll down or right
+    BEHIND: "BEHIND" // scroll down or right
 }
 const CALC_TYPE = {
     INIT: "INIT",
     FIXED: "FIXED",
-    DYNAMIC: "DYNAMIC",
+    DYNAMIC: "DYNAMIC"
 }
 const LEADING_BUFFER = 2
 

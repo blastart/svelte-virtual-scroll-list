@@ -12,7 +12,7 @@
     let list
 
     function addItems(top = true, count = 10) {
-        let new_items = []
+        const new_items = []
         for (let i = 0; i < count; i++)
             new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
         if (top)
@@ -40,13 +40,13 @@
 <button on:click={addItems}>Add 10 to top</button>
 <button on:click={() => addItems(false)}>Add 10 to bottom</button>
 <button on:click={list.scrollToBottom}>To bottom</button>
-<button on:click={async () => {
-        addItems(false, 1)
-        await tick()
-        list.scrollToBottom()
-    }}>Add 1 and scroll to bottom
+<button on:click={async() => {
+    addItems(false, 1)
+    await tick()
+    list.scrollToBottom()
+}}>Add 1 and scroll to bottom
 </button>
-<button on:click={()=>items[15].height = randomInteger(10, 150)}>Random height for 15 item</button>
+<button on:click={ () => items[15].height = randomInteger(10, 150)}>Random height for 15 item</button>
 
 
 <style>

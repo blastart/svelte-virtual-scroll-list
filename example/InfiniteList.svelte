@@ -12,7 +12,7 @@
     let list
 
     function itemsFactory(count = 10) {
-        let new_items = []
+        const new_items = []
         for (let i = 0; i < count; i++)
             new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
         return new_items
@@ -23,7 +23,7 @@
         loading = true
         await asyncTimeout(1000)
 
-        let new_items = itemsFactory(count)
+        const new_items = itemsFactory(count)
 
         if (top) {
             items = [...new_items, ...items]

@@ -54,15 +54,15 @@
 
     let displayItems = []
     let paddingStyle
-    let directionKey = isHorizontal ? "scrollLeft" : "scrollTop"
+    const directionKey = isHorizontal ? "scrollLeft" : "scrollTop"
     let range = null
-    let virtual = new Virtual({
+    const virtual = new Virtual({
         slotHeaderSize: 0,
         slotFooterSize: 0,
         keeps: keeps,
         estimateSize: estimateSize,
         buffer: Math.round(keeps / 3), // recommend for a third of keeps
-        uniqueIds: getUniqueIdFromDataSources(),
+        uniqueIds: getUniqueIdFromDataSources()
     }, onRangeChanged)
     let root
     let shepherd
@@ -184,7 +184,7 @@
             updatePageModeFront()
 
             document.addEventListener("scroll", onScroll, {
-                passive: false,
+                passive: false
             })
         }
     })
@@ -202,21 +202,23 @@
 
     function onItemResized(event) {
         const {id, size, type} = event.detail
-        if (type === "item")
+        if (type === "item") {
             virtual.saveSize(id, size)
-        else if (type === "slot") {
-            if (id === "header")
+        } else if (type === "slot") {
+            if (id === "header") {
                 virtual.updateParam("slotHeaderSize", size)
-            else if (id === "footer")
+            } else if (id === "footer") {
                 virtual.updateParam("slotFooterSize", size)
-
+            }
             // virtual.handleSlotSizeChange()
         }
     }
 
     function onRangeChanged(range_) {
         range = range_
-        paddingStyle = paddingStyle = isHorizontal ? `0px ${range.padBehind}px 0px ${range.padFront}px` : `${range.padFront}px 0px ${range.padBehind}px`
+        paddingStyle = isHorizontal
+            ? `0px ${range.padBehind}px 0px ${range.padFront}px`
+            : `${range.padFront}px 0px ${range.padBehind}px`
         displayItems = data.slice(range.start, range.end + 1)
     }
 
@@ -225,7 +227,7 @@
         const clientSize = getClientSize()
         const scrollSize = getScrollSize()
 
-        // iOS scroll-spring-back behavior will make direction mistake
+        // iOS scroll-spring-back behavior will make direction mistake
         if (offset < 0 || (offset + clientSize > scrollSize) || !scrollSize) {
             return
         }
@@ -255,7 +257,7 @@
 
     $: handleDataSourcesChange(data)
 
-    async function handleDataSourcesChange(data) {
+    async function handleDataSourcesChange(_data) {
         virtual.updateParam("uniqueIds", getUniqueIdFromDataSources())
         virtual.handleDataSourcesChange()
     }

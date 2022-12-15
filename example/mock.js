@@ -16,7 +16,7 @@ const lorem = (
 ).split(" ")
 
 export function randomInteger(min, max) {
-    let rand = min + Math.random() * (max - min)
+    const rand = min + Math.random() * (max - min)
     return Math.floor(rand)
 }
 
@@ -37,7 +37,7 @@ export function randomWord() {
 }
 
 export function randomString(min, max) {
-    let s = []
+    const s = []
     for (let i = 0; i < randomInteger(min, max); i++) s.push(randomWord())
     return s.join(" ")
 }

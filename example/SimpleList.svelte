@@ -14,7 +14,7 @@
     let notifications = {}
 
     function addItems(count = 10) {
-        let new_items = []
+        const new_items = []
         for (let i = 0; i < count; i++)
             new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 260)})
         items = [...items, ...new_items]
@@ -25,6 +25,7 @@
         notifications[id] = e
         setTimeout(() => {
             delete notifications[id]
+            // eslint-disable-next-line no-self-assign
             notifications = notifications
         }, 5000)
     }

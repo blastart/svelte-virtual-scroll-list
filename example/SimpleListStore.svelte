@@ -9,14 +9,14 @@
     const getItemId = createSequenceGenerator()
     const getNotificationId = createSequenceGenerator()
 
-    let items = writable([])
+    const items = writable([])
     addItems(true, 1000)
 
     let list
     let notifications = {}
 
     function addItems(top = true, count = 10) {
-        let new_items = []
+        const new_items = []
         for (let i = 0; i < count; i++)
             new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
         if (top)
@@ -30,6 +30,7 @@
         notifications[id] = e
         setTimeout(() => {
             delete notifications[id]
+            // eslint-disable-next-line no-self-assign
             notifications = notifications
         }, 5000)
     }
@@ -55,11 +56,11 @@
 <button on:click={addItems}>Add 10 to top</button>
 <button on:click={() => addItems(false)}>Add 10 to bottom</button>
 <button on:click={list.scrollToBottom}>To bottom</button>
-<button on:click={async () => {
-        addItems(false, 1)
-        await tick()
-        list.scrollToBottom()
-    }}>Add 1 and scroll to bottom
+<button on:click={async() => {
+    addItems(false, 1)
+    await tick()
+    list.scrollToBottom()
+}}>Add 1 and scroll to bottom
 </button>
 <div>
     {#each Object.entries(notifications) as [id, action] (id)}
