@@ -1,4 +1,15 @@
 {
-  "extends": "@tsconfig/svelte",
-  "exclude": ["node_modules", "dist/**/*"]
+    "extends": "@tsconfig/svelte",
+    "exclude": ["node_modules", "lib", "example/public/build"],
+    "compilerOptions": {
+        "outDir": "lib",
+        "allowJs": true,
+        "checkJs": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "strict": true,
+    }
 }
