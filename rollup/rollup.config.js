@@ -8,15 +8,15 @@ export default {
         sourcemap: true,
         format: "es",
         name: "app",
-        file: pkg.module,
+        file: pkg.module
     },
     plugins: [
         svelte({
             compilerOptions: {
                 // enable run-time checks when not in production
-                dev: false,
-            },
+                dev: false
+            }
         }),
-        sveld(),
-    ],
+        sveld()
+    ]
 }
