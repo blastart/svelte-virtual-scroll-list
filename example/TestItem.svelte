@@ -1,10 +1,50 @@
 <script>
-    export let uniqueKey
-    export let height
+    /**
+     * @typedef {string | number} cssSizeValue
+     */
+
+    /** @type {string | number} */
+    export let uniqueKey = "missing key"
+
+    /** @type {cssSizeValue | null} */
+    export let minHeight = null
+
+    /** @type {cssSizeValue | null} */
+    export let minWidth = null
+
+    /** @type {cssSizeValue | null} */
+    export let height = null
+
+    /** @type {cssSizeValue | null} */
+    export let width = null
+
+    /** @type {cssSizeValue | null} */
+    export let size = null
+
+    export let horizontalMode = false
+
+    $: {
+        if (size) {
+            if (horizontalMode) {
+                width = size + "px"
+                height = null
+            } else {
+                width = null
+                height = size + "px"
+            }
+        }
+    }
 </script>
 
-<div style="height: {height}px">
-    {uniqueKey} Item ({height}px)
+<div
+    class={horizontalMode ? "hoz" : "ver"}
+    style:height={height}
+    style:width={width}
+    style:min-width={minWidth}
+    style:min-height={minHeight}
+>
+    ({horizontalMode ? width : height}) <br>
+    key: {uniqueKey}
 </div>
 
 <style>

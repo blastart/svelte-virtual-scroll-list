@@ -3,76 +3,115 @@
     import VirtualScroll from "../src/VirtualScroll.svelte"
     import {asyncTimeout, createSequenceGenerator, randomInteger} from "./mock"
     import TestItem from "./TestItem.svelte"
+    export let horizontalMode = false
+    export let pageMode = false
+    /** @type {number} */
+    export let keeps
 
     const getItemId = createSequenceGenerator()
 
     let loading = false
+    let loadingDirection = 'bottom'
+
+    /** @type {{size: number, uniqueKey: number}[]} */
     let items = itemsFactory(70)
 
+    /** @type {VirtualScroll} */
     let list
 
     function itemsFactory(count = 10) {
         const new_items = []
         for (let i = 0; i < count; i++)
-            new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
+            new_items.push({
+                uniqueKey: getItemId(),
+                minHeight: horizontalMode ? '250px' : 'auto',
+                size: randomInteger(40, 260)
+            })
         return new_items
     }
 
     async function asyncAddItems(top = true, count = 10) {
         if (loading) return
         loading = true
+        loadingDirection = top ? 'top' : 'bottom'
         await asyncTimeout(1000)
 
         const new_items = itemsFactory(count)
 
         if (top) {
             items = [...new_items, ...items]
-
             // to save position on adding items to top we need to calculate
             // new top offset based on added items
             //
             // it works ONLY if newly added items was rendered
             tick().then(() => {
                 const sids = new_items.map(i => i.uniqueKey)
-                const offset = sids.reduce((previousValue, currentSid) => previousValue + list.getSize(currentSid), 0)
-                list.scrollToOffset(offset)
+                const offset = sids.reduce(
+                    (previousValue, currentSid) => previousValue + (list.getSize(currentSid) ?? 0), 0
+                )
+                list.scrollTo(offset)
             })
         } else {
             items = [...items, ...new_items]
-
+            // TODO: fix this hack
             // timeout needs because sometimes when you scroll down `scroll` event fires twice
             // and changes list.virtual.direction from BEHIND to FRONT
             // maybe there is a better solution
-            setTimeout(() => list.scrollToOffset(list.getOffset() + 1), 3)
+            setTimeout(() => list.scrollTo(list.getScrollPos() + 1), 3)
         }
         loading = false
     }
+
+    $: {
+        void horizontalMode
+        items = itemsFactory(70)
+    }
+
 </script>
+<div class="overflow-buttons">
+    <button on:click={() => list.scrollTo(0)}>To top</button>
+    <button on:click={list.scrollToBottom}>To bottom</button>
+</div>
 
 <div class="vs">
     <VirtualScroll
-            bind:this={list}
-            data={items}
-            key="uniqueKey"
-            let:data
-            on:bottom={() => asyncAddItems(false)}
-            on:top={() => asyncAddItems()}
-            start={30}
+        bind:this={list}
+        data={items}
+        key="uniqueKey"
+        keeps={keeps}
+        pageMode={pageMode}
+        isHorizontal={horizontalMode}
+        let:data
+        on:top={() => asyncAddItems(true)}
+        on:bottom={() => asyncAddItems(false)}
+        start={30}
     >
         <div slot="header">
-            Loading...
+            {#if loading && loadingDirection === "top"}
+                loading...
+            {/if}
         </div>
-        <TestItem {...data}/>
+        <TestItem horizontalMode={horizontalMode} {...data}/>
         <div slot="footer">
-            loading...
+            {#if loading && loadingDirection === "bottom"}
+                loading...
+            {:else}
+                scroll down to load more items
+            {/if}
         </div>
     </VirtualScroll>
 </div>
-<button on:click={() => list.scrollToOffset(0)}>To Top</button>
-<button on:click={list.scrollToBottom}>To bottom</button>
+
 
 <style>
-    .vs {
+    .vs{
         height: 300px;
+        max-width: 100%;
     }
+    :global(.page-mode) .vs{
+        height: auto;
+        max-width: none;
+    }
+
+
 </style>

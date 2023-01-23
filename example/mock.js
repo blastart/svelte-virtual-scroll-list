@@ -15,18 +15,29 @@ const lorem = (
     "Есть много вариантов Lorem Ipsum, но большинство из них имеет не всегда приемлемые модификации, например, юмористические вставки или слова, которые даже отдалённо не напоминают латынь. Если вам нужен Lorem Ipsum для серьёзного проекта, вы наверняка не хотите какой-нибудь шутки, скрытой в середине абзаца. Также все другие известные генераторы Lorem Ipsum используют один и тот же текст, который они просто повторяют, пока не достигнут нужный объём. Это делает предлагаемый здесь генератор единственным настоящим Lorem Ipsum генератором. Он использует словарь из более чем 200 латинских слов, а также набор моделей предложений. В результате сгенерированный Lorem Ipsum выглядит правдоподобно, не имеет повторяющихся абзацей или \"невозможных\" слов."
 ).split(" ")
 
+/**
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export function randomInteger(min, max) {
     const rand = min + Math.random() * (max - min)
     return Math.floor(rand)
 }
 
+/**
+ * @returns {IterableIterator<number>}
+ * @generator
+ */
 function* SequenceGenerator() {
     let i = 0
     while (true) {
         yield i++
     }
 }
-
+/**
+ * @returns {function(): number}
+*/
 export function createSequenceGenerator() {
     const sequenceGenerator = SequenceGenerator()
     return () => sequenceGenerator.next().value
@@ -36,12 +47,21 @@ export function randomWord() {
     return lorem[randomInteger(0, lorem.length)]
 }
 
+/**
+ * @param {number} min
+ * @param {number} max
+ * @returns {string}
+ */
 export function randomString(min, max) {
     const s = []
     for (let i = 0; i < randomInteger(min, max); i++) s.push(randomWord())
     return s.join(" ")
 }
 
+/**
+ * @param {number} time
+ * @returns {Promise<void>}
+ */
 export function asyncTimeout(time) {
     return new Promise(resolve => setTimeout(resolve, time))
 }

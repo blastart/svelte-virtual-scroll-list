@@ -5,56 +5,87 @@
     import VirtualScroll from "../src/VirtualScroll.svelte"
     import {createSequenceGenerator, randomInteger} from "./mock"
     import TestItem from "./TestItem.svelte"
+    export let horizontalMode = false
+    export let pageMode = false
 
     const getItemId = createSequenceGenerator()
     const getNotificationId = createSequenceGenerator()
+    /** @type {number} */
+    export let keeps
 
     const items = writable([])
-    addItems(true, 1000)
 
+    /** @type {VirtualScroll} */
     let list
+
+    /** @type {Record<string, string>} */
     let notifications = {}
 
     function addItems(top = true, count = 10) {
         const new_items = []
         for (let i = 0; i < count; i++)
-            new_items.push({uniqueKey: getItemId(), height: randomInteger(20, 60)})
+            new_items.push({
+                uniqueKey: getItemId(),
+                minHeight: horizontalMode ? '200px' : 'auto',
+                size: randomInteger(30, 180)
+            })
         if (top)
             $items = [...new_items, ...$items]
         else
             $items = [...$items, ...new_items]
     }
 
-    function addNotification(e) {
+    /**
+     * @param {'top' | 'bottom'} action
+     */
+    function addNotification(action) {
         const id = getNotificationId()
-        notifications[id] = e
+        notifications[id] = action
         setTimeout(() => {
             delete notifications[id]
             // eslint-disable-next-line no-self-assign
             notifications = notifications
         }, 5000)
     }
+
+    function addItemsToTop() {
+        addItems(true)
+    }
+
+    function addItemsToBottom() {
+        addItems(false)
+    }
+
+    $: {
+        void horizontalMode
+        items.set([])
+        addItems(false, 5)
+    }
 </script>
+
 <div class="vs">
     <VirtualScroll
-            bind:this={list}
-            data={$items}
-            key="uniqueKey"
-            let:data
-            on:bottom={() => addNotification("bottom")}
-            on:top={() => addNotification("top")}
+        bind:this={list}
+        data={$items}
+        key="uniqueKey"
+        keeps={keeps}
+        pageMode={pageMode}
+        isHorizontal={horizontalMode}
+        let:data
+        on:bottom={() => addNotification("bottom")}
+        on:top={() => addNotification("top")}
     >
         <div slot="header">
             This is a header
         </div>
-        <TestItem {...data}/>
+        <TestItem horizontalMode={horizontalMode} {...data}/>
         <div slot="footer">
             This is a footer
         </div>
     </VirtualScroll>
 </div>
-<button on:click={addItems}>Add 10 to top</button>
-<button on:click={() => addItems(false)}>Add 10 to bottom</button>
+<button on:click={addItemsToTop}>Add 10 to top</button>
+<button on:click={addItemsToBottom}>Add 10 to bottom</button>
 <button on:click={list.scrollToBottom}>To bottom</button>
 <button on:click={async() => {
     addItems(false, 1)
@@ -62,7 +93,7 @@
     list.scrollToBottom()
 }}>Add 1 and scroll to bottom
 </button>
-<div>
+<div class="toasts">
     {#each Object.entries(notifications) as [id, action] (id)}
         <div animate:flip>{action} </div>
     {/each}
@@ -70,7 +101,14 @@
 
 
 <style>
-    .vs {
+    .vs{
         height: 300px;
+        max-width: 100%;
     }
+    :global(.page-mode) .vs{
+        height: auto;
+        max-width: none;
+    }
+
+
 </style>

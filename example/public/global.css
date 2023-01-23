@@ -73,9 +73,7 @@ button:focus {
     margin: 8px 0;
 }
 
-.virtual-scroll-item {
-    padding: 4px 0;
-}
+
 
 div[slot="header"], div[slot="footer"] {
     text-align: center;

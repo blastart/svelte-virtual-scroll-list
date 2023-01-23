@@ -1,11 +1,73 @@
+export const defaultNameSpace = 'virtual-scroll'
+
+/**
+ * @typedef {false | 0 | "" | null | undefined | void} TypeFalsy
+ */
+
+/**
+ * @param {Array<string | TypeFalsy>} classList
+ * @returns {string}
+ * @example
+ * joinClassNames('a', false, 'b', 'c', null) // 'a b c'
+ */
+export const joinClassNames = (...classList) => classList
+    .filter((c) => typeof c === 'string' && c.trim().length > 0)
+    .map((c) => c && c.trim())
+    .join(' ')
+
+
+
+/**
+ * @param {(...args: unknown[]) => unknown} func
+ * @param {number} rifFallbackDelay
+ */
+export function rifFn(func, rifFallbackDelay = 40) {
+    /** @type { ReturnType<typeof requestIdleCallback> | null } */
+    let idleTimeout
+    /** @type { ReturnType<typeof setTimeout> | null } */
+    let fallbackTimeout
+
+    let fallbackLastCall = 0
+
+    const rifSupport = typeof requestIdleCallback === 'function'
+
+    /**
+    * @param {...*} args
+    * @this {unknown}
+    */
+    return function(...args) {
+        const timerFn = () => {
+            func.apply(this, args)
+            idleTimeout = fallbackTimeout = null
+            if (!rifSupport) fallbackLastCall = Date.now()
+        }
+
+        if (rifSupport) {
+            idleTimeout && cancelIdleCallback(idleTimeout)
+            idleTimeout = requestIdleCallback(timerFn)
+        } else { // safari does not support requestIdleCallback yet
+            const now = Date.now()
+            fallbackTimeout && clearTimeout(fallbackTimeout)
+
+            if (now - fallbackLastCall > rifFallbackDelay) {
+                timerFn()
+            }
+
+            fallbackTimeout = setTimeout(timerFn, rifFallbackDelay)
+        }
+    }
+}
+
 /**
  * virtual list core calculating center
  */
 
+/** @type {Object<string, string>} */
 const DIRECTION_TYPE = {
     FRONT: "FRONT", // scroll up or left
     BEHIND: "BEHIND" // scroll down or right
 }
+/** @type {Object<string, string>} */
 const CALC_TYPE = {
     INIT: "INIT",
     FIXED: "FIXED",
@@ -13,25 +75,93 @@ const CALC_TYPE = {
 }
 const LEADING_BUFFER = 2
 
+
+/**
+ * @typedef {Object} TypeRange
+ * @property {number} start
+ * @property {number} end
+ * @property {number} padFront
+ * @property {number} padBehind
+ */
+
+
+
+
+/**
+ * @typedef {Object} TypeParamRequerd
+ * @property {number} keeps
+ * @property {number} estimateSize
+ * @property {number} buffer
+ * @property {Array<string | number>} uniqueIds
+ */
+
+
+/**
+ * @typedef {Object} TypeParamOptional
+ * @property {number} slotHeaderSize
+ * @property {number} slotFooterSize
+ * @property {number} pageModeOffset
+ */
+
+/**
+ * @typedef {TypeParamRequerd & TypeParamOptional} TypeParam
+ */
+
+/**
+ * @typedef {TypeParamRequerd | TypeParamOptional} TypeParamForInit
+ */
+
+
 export default class {
-    param
-    callUpdate
+    /** @type {TypeParam | null} */
+    param = null
+
+    /**
+     * @type {Function | null}
+     * @param {TypeRange} range
+    */
+    callUpdate = null
+    /** @type {number | null} */
     firstRangeTotalSize = 0
+
     firstRangeAverageSize = 0
+    /** @type {Map<number | string, number>} */
+    sizes = new Map()
     lastCalcIndex = 0
     fixedSizeValue = 0
+    /** @type {keyof typeof CALC_TYPE} */
     calcType = CALC_TYPE.INIT
     offset = 0
+    /** @type {keyof typeof DIRECTION_TYPE | ""} */
     direction = ""
-    range
+    /** @type {TypeRange} */
+    range = Object.create(null)
 
+    /**
+     * @param {TypeParamForInit} param
+     * @param {(range: TypeRange) => void} callUpdate
+     */
     constructor(param, callUpdate) {
         this.init(param, callUpdate)
     }
 
-    init(param, callUpdate) {
+    /**
+     * @param {TypeParamForInit | null} param
+     * @param {Function | null} callUpdate
+     * @param {keyof typeof CALC_TYPE} [_calcType]
+     */
+    init(param, callUpdate, _calcType) {
         // param data
-        this.param = param
+        /** @type {TypeParam | null} */
+        this.param = param ? Object.assign({
+            slotHeaderSize: 0,
+            slotFooterSize: 0,
+            pageModeOffset: 0,
+            keeps: 30,
+            estimateSize: 50,
+            buffer: 10,
+            uniqueIds: []
+        }, param) : null
         this.callUpdate = callUpdate
 
         // size data
@@ -40,7 +170,7 @@ export default class {
         this.firstRangeAverageSize = 0
         this.lastCalcIndex = 0
         this.fixedSizeValue = 0
-        this.calcType = CALC_TYPE.INIT
+        this.calcType = _calcType || CALC_TYPE.INIT
 
         // scroll data
         this.offset = 0
@@ -49,7 +179,7 @@ export default class {
         // range data
         this.range = Object.create(null)
         if (param) {
-            this.checkRange(0, param.keeps - 1)
+            this.checkRange(0, this.getKeeps() - 1)
         }
 
         // benchmark example data
@@ -57,11 +187,19 @@ export default class {
         // this.__getIndexOffsetCalls = 0
     }
 
+    reset() {
+        if (this.param && this.callUpdate) {
+            this.init(this.param, this.callUpdate, this.calcType)
+        }
+    }
+
     destroy() {
         this.init(null, null)
     }
 
-    // return current render range
+    /**
+     * @returns {TypeRange}
+     */
     getRange() {
         const range = Object.create(null)
         range.start = this.range.start
@@ -79,27 +217,84 @@ export default class {
         return this.direction === DIRECTION_TYPE.FRONT
     }
 
-    // return start index offset
-    getOffset(start) {
-        return (start < 1 ? 0 : this.getIndexOffset(start)) + this.param.slotHeaderSize
+    getSlotHeaderSize() {
+        if (typeof this.param?.pageModeOffset === "number" && this.param.pageModeOffset > 0) {
+            return this.param.pageModeOffset + this.param?.slotHeaderSize ?? 0
+        }
+        return this.param?.slotHeaderSize ?? 0
     }
 
+    /**
+     * @param {number} start
+     * @returns {number} return start index offset
+     */
+    getOffset(start) {
+        return (start < 1 ? 0 : this.getIndexOffset(start)) + this.getSlotHeaderSize()
+    }
+
+    /**
+     * @param {keyof TypeParam} key
+     * @param {unknown} value
+    */
     updateParam(key, value) {
-        if (this.param && (key in this.param)) {
-            // if uniqueIds change, find out deleted id and remove from size map
-            if (key === "uniqueIds") {
+        if (!this.param) {
+            this.consoleError('updateParam() param is not yet initialized')
+            return
+        }
+
+        switch (key) {
+            case "uniqueIds": {
+                // if uniqueIds change, find out deleted id and remove from size map
                 this.sizes.forEach((v, key) => {
-                    if (!value.includes(key)) {
+                    if (Array.isArray(value) && !value.includes(key)) {
                         this.sizes.delete(key)
                     }
                 })
+                if (Array.isArray(value)) {
+                    this.param[key] = value
+                } else {
+                    this.consoleError('invalid param value', key, value)
+                }
+                break
             }
-            this.param[key] = value
+            case "keeps":
+            case "estimateSize":
+            case "buffer":
+            case "slotHeaderSize":
+            case "slotFooterSize":
+            case "pageModeOffset": {
+                if (typeof value !== "number" || !isFinite(value))  {
+                    this.consoleError('invalid param value', key, value)
+                    break
+                }
+                if (key === "pageModeOffset") {
+                    this.param[key] = value
+                    this.handleFront()
+                    this.handleBehind()
+                } else {
+                    this.param[key] = Math.max(value, 0)
+                }
+                break
+            }
+            default: {
+                this.consoleError('unexpected param key', key, value)
+                break
+            }
         }
     }
 
+    getKeeps() {
+        return Math.max(this.param?.keeps ?? 30, 3)
+    }
+
     // save each size map by id
+    /**
+     * @param {import('./index').TypeUniqueKey} id
+     * @param {number} size
+     */
     saveSize(id, size) {
+        if (!this.param) return
+
         this.sizes.set(id, size)
 
         // we assume size type is fixed at the beginning and remember first size value
@@ -110,18 +305,28 @@ export default class {
             this.calcType = CALC_TYPE.FIXED
         } else if (this.calcType === CALC_TYPE.FIXED && this.fixedSizeValue !== size) {
             this.calcType = CALC_TYPE.DYNAMIC
-            // it's no use at all
-            delete this.fixedSizeValue
+            this.fixedSizeValue = 0
         }
 
+        this.calcAverageSizeOnce()
+    }
+
+    clearSizes() {
+        this.sizes.clear()
+        this.firstRangeTotalSize = 0
+    }
+
+    calcAverageSizeOnce() {
+        if (!this.param) return
+
         // calculate the average size only in the first range
-        if (this.calcType !== CALC_TYPE.FIXED && typeof this.firstRangeTotalSize !== "undefined") {
-            if (this.sizes.size < Math.min(this.param.keeps, this.param.uniqueIds.length)) {
+        if (this.calcType !== CALC_TYPE.FIXED && this.firstRangeTotalSize !== null) {
+            if (this.sizes.size < Math.min(this.getKeeps(), this.param.uniqueIds.length)) {
                 this.firstRangeTotalSize = [...this.sizes.values()].reduce((acc, val) => acc + val, 0)
-                this.firstRangeAverageSize = Math.round(this.firstRangeTotalSize / this.sizes.size)
+                this.firstRangeAverageSize = Math.round(this.firstRangeTotalSize / this.sizes.size) || 0
             } else {
                 // it's done using
-                delete this.firstRangeTotalSize
+                this.firstRangeTotalSize = null
             }
         }
     }
@@ -148,11 +353,13 @@ export default class {
     }
 
     // calculating range on scroll
+    /** @param {number} offset */
+
     handleScroll(offset) {
         this.direction = offset < this.offset ? DIRECTION_TYPE.FRONT : DIRECTION_TYPE.BEHIND
         this.offset = offset
-
         if (!this.param) {
+            this.consoleError('handleScroll: No param, return')
             return
         }
 
@@ -166,6 +373,7 @@ export default class {
     // ----------- public method end -----------
 
     handleFront() {
+        if (!this.param) return
         const overs = this.getScrollOvers()
         // should not change range if start doesn't exceed overs
         if (overs > this.range.start) {
@@ -178,7 +386,13 @@ export default class {
     }
 
     handleBehind() {
+        if (!this.param) return
+
         const overs = this.getScrollOvers()
+        // console.log(overs < this.range.start + this.param.buffer, {
+        //     overs, "start": this.range.start, "buffer": this.param.buffer
+        // })
+
         // range should not change if scroll overs within buffer
         if (overs < this.range.start + this.param.buffer) {
             return
@@ -189,15 +403,17 @@ export default class {
 
     // return the pass overs according to current scroll offset
     getScrollOvers() {
+        if (!this.param) return 0
+
         // if slot header exist, we need subtract its size
-        const offset = this.offset - this.param.slotHeaderSize
+        const offset = this.offset - this.getSlotHeaderSize()
         if (offset <= 0) {
             return 0
         }
 
         // if is fixed type, that can be easily
         if (this.isFixedType()) {
-            return Math.floor(offset / this.fixedSizeValue)
+            return  this.fixedSizeValue ? Math.floor(offset / this.fixedSizeValue) : 0
         }
 
         let low = 0
@@ -224,12 +440,17 @@ export default class {
 
     // return a scroll offset from given index, can efficiency be improved more here?
     // although the call frequency is very high, its only a superposition of numbers
+    /**
+     * @param {number} givenIndex
+     * @returns {number}
+     */
     getIndexOffset(givenIndex) {
-        if (!givenIndex) {
+        if (!givenIndex || !this.param) {
             return 0
         }
 
         let offset = 0
+        /** @type {number | undefined} */
         let indexSize = 0
         for (let index = 0; index < givenIndex; index++) {
             // this.__getIndexOffsetCalls++
@@ -250,14 +471,20 @@ export default class {
     }
 
     // return the real last index
+
     getLastIndex() {
-        return this.param.uniqueIds.length - 1
+        return this.param ? this.param.uniqueIds.length - 1 : 0
     }
 
     // in some conditions range is broke, we need correct it
     // and then decide whether need update to next range
+    /**
+     * @param {number} start
+     * @param {number} end
+    */
     checkRange(start, end) {
-        const keeps = this.param.keeps
+        if (!this.param) return
+        const keeps = this.getKeeps()
         const total = this.param.uniqueIds.length
 
         // data less than keeps, render all
@@ -275,17 +502,26 @@ export default class {
     }
 
     // setting to a new range and rerender
+    /**
+     * @param {number} start
+     * @param {number} end
+    */
     updateRange(start, end) {
         this.range.start = start
         this.range.end = end
         this.range.padFront = this.getPadFront()
         this.range.padBehind = this.getPadBehind()
-        this.callUpdate(this.getRange())
+        if (typeof this.callUpdate === "function") {
+            this.callUpdate(this.getRange())
+        }
     }
 
     // return end base on start
+    /**
+     * @param {number} start
+    */
     getEndByStart(start) {
-        const theoryEnd = start + this.param.keeps - 1
+        const theoryEnd = start + (this.getKeeps() || 1) - 1
         const truelyEnd = Math.min(theoryEnd, this.getLastIndex())
         return truelyEnd
     }
@@ -318,7 +554,17 @@ export default class {
     }
 
     // get the item estimate size
+    /** @returns {number} */
     getEstimateSize() {
-        return this.isFixedType() ? this.fixedSizeValue : (this.firstRangeAverageSize || this.param.estimateSize)
+        return this.isFixedType()
+            ? this.fixedSizeValue
+            : (this.firstRangeAverageSize || this.param?.estimateSize || 0)
+    }
+
+    /**
+     * @param {unknown[]} args
+     */
+    consoleError(...args) {
+        console.error(defaultNameSpace, ...args)
     }
 }
