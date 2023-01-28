@@ -2,7 +2,6 @@
     import {afterUpdate, createEventDispatcher, onDestroy, onMount} from "svelte"
     import {joinClassNames, defaultNameSpace} from "./virtual"
 
-
     /**
      * @type {string} [tagName] - tagName of the item element
      */
@@ -56,12 +55,16 @@
     let itemElement
 
     /**
+     * @type {HTMLElement | undefined} [node] - item element for bind:node={parentVar}
+     */
+    export let node = undefined
+
+    /**
      * @type {number} [previousSize] - previous size of the item
      */
     let previousSize
 
     const dispatch = createEventDispatcher()
-    const shapeKey = horizontal ? "offsetWidth" : "offsetHeight"
 
     onMount(() => {
         if (typeof ResizeObserver !== "undefined") {
@@ -78,6 +81,8 @@
             resizeObserver = null
         }
     })
+
+    const shapeKey = horizontal ? "offsetWidth" : "offsetHeight"
 
     function dispatchSizeChange() {
         const size = itemElement ? itemElement[shapeKey] : 0
@@ -97,6 +102,8 @@
             }
         }
     }
+
+    $: node = itemElement
 
   </script>
 
