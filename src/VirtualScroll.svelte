@@ -1,9 +1,7 @@
 <script>
-    import Virtual, {joinClassNames, defaultNameSpace, rifFn} from "./virtual"
+    import Virtual, {joinClassNames, defaultNameSpace, rifFn, browser} from "./virtual"
     import Item from "./Item.svelte"
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
-
-    const browser = typeof window !== "undefined"
 
     /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
     export let key = "id"
@@ -70,21 +68,34 @@
     /** @type  {import('./index').TypeDataItem[]} */
     let displayItems = []
 
-    /** @type {string | null} */
-    let paddingStyle = null
-
     /** @type {"scrollLeft" | "scrollTop"} */
     let scrolltDirectionKey
 
     /** @type {import('./virtual').TypeRange | null} */
     let range = null
 
+
+
     const virtual = new Virtual({
         keeps: keeps,
+        keepsBehaviour: Virtual.KEEPS_BEHAVIOUR.AUTO_INCREASE,
         estimateSize: estimateSize,
         buffer: Math.round(keeps / 3) || 5, // recommend for a third of keeps
-        uniqueIds: getUniqueIdFromDataSources()
-    }, onRangeChanged)
+        uniqueIds: getUniqueIdFromDataSources(),
+        scrollTo: (pos) => {
+            scrollTo(pos)
+        }
+    }, function(rng, afterRender) {
+        // callUpdate
+        range = rng
+
+        displayItems = data.slice(rng.start, rng.end + 1)
+
+        tick().then(() => afterRender(getClientSize()))
+    })
+
+    /** @type {HTMLElement} for scrollable tables **/
+    let wrapper
 
     /** @type {HTMLElement} */
     let root
@@ -92,6 +103,13 @@
     const refFooterSlot = { current: null }
 
     const dispatch = createEventDispatcher()
+
+    export const triggerScroll = () => {
+        dispatch("scroll", {
+            event: new CustomEvent(defaultNameSpace + '-scroll-tirgger'),
+            range: virtual.getRange()
+        })
+    }
 
     /**
      * @param {import('./index').TypeUniqueKey} id of item
@@ -104,6 +122,10 @@
         return virtual.sizes.size
     }
 
+    export function clearSizes() {
+        return virtual.clearSizes()
+    }
+
     /**
      * @type {() => number}
      */
@@ -112,7 +134,8 @@
 
         if (pageMode) {
             return document.documentElement[scrolltDirectionKey] || document.body[scrolltDirectionKey]
-
+        } else if (tableView) {
+            return wrapper ? Math.ceil(wrapper[scrolltDirectionKey]) : 0
         } else {
             return root ? Math.ceil(root[scrolltDirectionKey]) : 0
         }
@@ -127,6 +150,8 @@
         const key = isHorizontal ? "clientWidth" : "clientHeight"
         if (pageMode) {
             return document.documentElement[key] || document.body[key]
+        } else if (tableView) {
+            return wrapper ? Math.ceil(wrapper[key]) : 0
         } else {
             return root ? Math.ceil(root[key]) : 0
         }
@@ -141,6 +166,8 @@
         const key = isHorizontal ? "scrollWidth" : "scrollHeight"
         if (pageMode) {
             return document.documentElement[key] || document.body[key]
+        } else if (tableView) {
+            return wrapper ? Math.ceil(wrapper[key]) : 0
         } else {
             return root ? Math.ceil(root[key]) : 0
         }
@@ -164,13 +191,18 @@
                     ? (rect.left + window.pageXOffset)
                     : (rect.top + window.pageYOffset)
             }
+
+
             if (offset === lastOffset) return
-            // console.log("updatePageModeFront", offset)
+            console.warn("updatePageModeFront", offset, pageMode)
             virtual.updateParam("pageModeOffset", offset)
             lastOffset = offset
         }
     })()
 
+    window.updatePageModeFront = updatePageModeFront
+    window.triggerScroll = triggerScroll
+    window.virtual = virtual
 
     /**
      * @type {(position: number) => void} - scroll to position by px
@@ -181,9 +213,12 @@
         if (pageMode) {
             document.body[scrolltDirectionKey] = position
             document.documentElement[scrolltDirectionKey] = position
-        } else if (root) {
+        } else if (tableView && wrapper) {
+            wrapper[scrolltDirectionKey] = position
+        } else if (!tableView && root) {
             root[scrolltDirectionKey] = position
         }
+        triggerScroll()
     }
 
     /**
@@ -193,10 +228,11 @@
         if (index >= data.length - 1) {
             scrollToBottom()
         } else {
-            const offset = virtual.getOffset(index)
+            const offset = virtual.getScrollPosByIndex(index)
             scrollTo(offset)
         }
     }
+
 
     /**
      * @param {Event | null} [_e] - event if called by event handler
@@ -223,20 +259,58 @@
     }
 
 
+    export const tableStyle = [
+        'display: table',
+        // 'table-layout:fixed',
+        'padding: 0',
+        'border-collapse: collapse',
+        'width: 100%',
+        'border-spacing: 0'
+    ].join(';')
+
     /**
-     * @param {{tableView: boolean, isHorizontal: boolean, pageMode: boolean}} modes
-     * @return {string} css string
+     * @typedef {{tableView: boolean, isHorizontal: boolean, pageMode: boolean}} TypeViewModes
+     */
+    /**
+     * @typedef {(viewModes: TypeViewModes, range: import('./virtual').TypeRange | null) => string} TypeStyleCallback
+     */
+
+
+    /**
+     * @type {TypeStyleCallback} returns the style of header slot
+     */
+    export function wrapperStyle({tableView, pageMode}) {
+        const cssProps = [
+            'height: inherit'
+        ]
+        if (tableView && !pageMode) {
+            cssProps.push(
+                'position: relative',
+                'overflow-y: auto'
+            )
+        }
+        return cssProps.join(";")
+    }
+
+    /**
+     * @type {TypeStyleCallback} returns the style of root elem.
      */
     export function rootStyle({tableView, isHorizontal, pageMode}) {
         const cssProps = [
-            `height: ${pageMode ? "auto" : "inherit"}`,
-            'max-width: 100%',
-            isHorizontal ? 'overflow-y: auto' : 'overflow-y: auto'
+            `height: ${pageMode || tableView ? "auto" : "inherit"}`,
+            'max-width: 100%'
         ]
+        if (!tableView) {
+            cssProps.push(
+                isHorizontal ? 'overflow-x: auto' : 'overflow-y: auto',
+                isHorizontal ? 'width: auto' : 'width: 100%'
+            )
+        }
+
         if (tableView) {
             cssProps.push(
-                'border-collapse: collapse',
-                `display: ${pageMode ? "table" : "block"}`
+                tableStyle
+                // `margin: ${range?.padFront ?? 0}px 0px ${range?.padBehind ?? 0}px`
             )
         }
 
@@ -249,27 +323,49 @@
 
 
     /**
-     * @param {{tableView: boolean, isHorizontal: boolean, pageMode: boolean}} modes
-     * @param {string | null} paddingStyle - css padding value
-     * @return {string} css string
+     * @type {TypeStyleCallback} returns the style of list elem.
      */
-    export function listStyle({tableView, isHorizontal}, paddingStyle) {
+    export function listStyle({tableView, isHorizontal}, range) {
         const cssProps = []
-        if (!tableView && paddingStyle) {
-            cssProps.push(`padding: ${paddingStyle}`)
+        if (!tableView) {
+            const pStyle = isHorizontal
+                ? `0px ${range?.padBehind ?? 0}px 0px ${range?.padFront ?? 0}px`
+                : `${range?.padFront ?? 0}px 0px ${range?.padBehind ?? 0}px`
+            cssProps.push(`padding: ${pStyle}`)
         }
+
         if (isHorizontal && !tableView) {
             cssProps.push('display: flex', 'flex-direction: row', 'flex-wrap: nowrap')
         }
         return cssProps.join(";")
     }
 
-    // let lastCall = 0
+    /**
+     * @type {TypeStyleCallback} returns the style of header slot
+     */
+    export function itemStyle() {
+        return ''
+    }
+
+    /**
+     * @type {TypeStyleCallback} returns the style of header slot
+     */
+    export function headerSlotStyle() {
+        return ''
+    }
+
+    /**
+     * @type {TypeStyleCallback} returns the style of footer slot
+     */
+    export function footerSlotStyle() {
+        return ''
+    }
+
+
     const rifDocumentScroll = rifFn(() => {
-        // const now = Date.now()
-        // console.log('rifFnd', now - lastCall)
-        // lastCall = now
         updatePageModeFront()
+        // update again after keepBehavior finished
+        tick().then(() => updatePageModeFront())
     })
 
     /** @param {Event} e */
@@ -278,6 +374,31 @@
         onScroll(e)
         rifDocumentScroll()
     }
+
+    /** for tables
+     * @param {Event} e
+     */
+    function onWrapperScroll(e) {
+        if (!pageMode && tableView) {
+            onScroll(e)
+        }
+    }
+
+    /** @param {Event} e */
+    function onRootScroll(e) {
+        if (pageMode || tableView) {
+            return
+        }
+        onScroll(e)
+    }
+
+
+    /** @param {UIEvent} e */
+    function onWindowResize(e) {
+        onScroll(e) // keep it on top
+        if (pageMode) rifDocumentScroll()
+    }
+
 
     onMount(() => {
         if (start) {
@@ -292,6 +413,11 @@
             document.addEventListener("scroll", onDocumentScroll, {
                 passive: false
             })
+            // wrapper.addEventListener("scroll", onWrapperScroll, {
+            //     passive: false
+            // })
+
+            window.addEventListener("resize", onWindowResize)
         }
     })
 
@@ -299,8 +425,11 @@
         virtual.destroy()
         if (browser) {
             document.removeEventListener("scroll", onDocumentScroll)
+            // wrapper.removeEventListener("scroll", onWrapperScroll)
+            window.removeEventListener("resize", onWindowResize)
         }
     })
+
 
     function getUniqueIdFromDataSources() {
         return data.map((dataSource) => dataSource[key])
@@ -324,21 +453,9 @@
         }
     }
 
-    /**
-     * @param {import('./virtual').TypeRange} rng
-     */
-    function onRangeChanged(rng) {
-        range = rng
-        // console.log("onRangeChanged", range)
-        paddingStyle = isHorizontal
-            ? `0px ${range.padBehind}px 0px ${range.padFront}px`
-            : `${range.padFront}px 0px ${range.padBehind}px`
-
-        displayItems = data.slice(range.start, range.end + 1)
-    }
 
     /**
-     * @param {Event} event
+     * @param {Event | UIEvent} event
      */
     function onScroll(event) {
         const scrollPos = getScrollPos()
@@ -346,11 +463,13 @@
         const scrollSize = getScrollSize()
 
         // iOS scroll-spring-back behavior will make direction mistake
-        if (scrollPos < 0 || (scrollPos + clientSize > scrollSize) || !scrollSize) {
+        if (scrollPos < 0 || (scrollPos + clientSize > scrollSize + 1) || !scrollSize) {
+            // console.warn('IOS GESTURE')
             return
         }
 
-        virtual.handleScroll(scrollPos)
+        virtual.handleScroll(scrollPos, clientSize, scrollSize)
+
         emitEvent(scrollPos, clientSize, scrollSize, event)
     }
 
@@ -389,10 +508,7 @@
 
         await tick()
 
-        dispatch("scroll", {
-            event: new CustomEvent(defaultNameSpace + '-scroll-tirgger'),
-            range: virtual.getRange()
-        })
+        triggerScroll()
     }
 
     $: scrollTo(offset)
@@ -403,17 +519,21 @@
     $: propsItemDstructed = destructElementProps(propsItem)
     $: {
         void pageMode
-        updatePageModeFront()
 
         if (isHorizontal && tableView) {
-            console.warn("Horizontal mode doesn't support table view")
+            virtual.logError("Horizontal mode doesn't support table view")
             isHorizontal = false
         }
 
         scrolltDirectionKey = isHorizontal ? "scrollLeft" : "scrollTop"
+        updatePageModeFront()
+        // virtual.clearSizes()
+
+        handleDataSourcesChange()
+
+
         tick().then(() => {
-            handleDataSourcesChange()
-            if (start) scrollToIndex(start)
+            virtual.refreshScrollPos()
         })
     }
 
@@ -421,88 +541,103 @@
         void data
         handleDataSourcesChange()
     }
-
-
 </script>
-<svelte:element
-    {...propsRootDstructed.restProps}
-    style={rootStyle({tableView, isHorizontal, pageMode})}
-    this={tableView ? 'table' : propsRootDstructed.tagName || 'div'}
-    class={joinClassNames(
-        nameSpace,
-        `${nameSpace}--dir-${isHorizontal ? "horizontal" : "vertical"}`,
-        `${nameSpace}--view-${tableView ? "table" : "list"}`,
-        `${nameSpace}--${pageMode ? "page-mode" : "overflow-mode"}`,
-        propsRootDstructed.className
-    )}
-    bind:this={root}
-    on:scroll={onScroll}
+<div style="position: absolute; top: 0">
+    padFront: {range?.padFront} |
+    padBehind: {range?.padBehind} |
+    pageModeOffset: {virtual.param?.pageModeOffset} |
+</div>
+
+<div class="{nameSpace}__wrapper"
+    bind:this={wrapper}
+    on:scroll={onWrapperScroll}
+    style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
 >
 
-    {#if $$slots.header}
-        <Item
-            tagName={tableView ? "thead" : "div"}
-            {...propsHeaderSlot}
-            on:resize={onItemResized}
-            nameSpace="{nameSpace}"
-            type="slot"
-            uniqueKey="header"
-        >
-            <slot name="header"/>
-        </Item>
-    {/if}
 
     <svelte:element
-        role={tableView ? null : "listbox"}
-        {...propsListDstructed.restProps}
-        style={listStyle({tableView, isHorizontal, pageMode}, paddingStyle)}
-        this={tableView ? 'tbody' : propsListDstructed.tagName || 'div'}
-        class={joinClassNames(`${nameSpace}__list`, propsListDstructed.className)}
+        {...propsRootDstructed.restProps}
+        style={rootStyle({tableView, isHorizontal, pageMode}, range)}
+        this={tableView ? 'table' : propsRootDstructed.tagName || 'div'}
+        class={joinClassNames(
+            nameSpace,
+            `${nameSpace}--dir-${isHorizontal ? "horizontal" : "vertical"}`,
+            `${nameSpace}--view-${tableView ? "table" : "list"}`,
+            `${nameSpace}--${pageMode ? "page-mode" : "overflow-mode"}`,
+            propsRootDstructed.className
+        )}
+        bind:this={root}
+        on:scroll={onRootScroll}
     >
-        {#if tableView && range}
-            <tr
-                class="{nameSpace}__table-spacer"
-                style="border: 0 none; padding: 0; height: {range.padFront}px"
-            />
-        {/if}
 
-        {#each displayItems as dataItem (dataItem[key])}
-            {@const index = data.indexOf(dataItem)}
+        {#if $$slots.header}
             <Item
-                aria-setsize={data.length}
-                aria-posinset={index + 1}
-                role={tableView ? null : "listitem"}
-                {...propsItemDstructed.restProps}
-                tagName={tableView ? "tr" : propsItemDstructed.tagName || "div"}
-                index={index}
-                className={propsItemDstructed.className}
-                nameSpace="{nameSpace}"
+                tagName={tableView ? "thead" : "div"}
+                style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
+                {...propsHeaderSlot}
                 on:resize={onItemResized}
-                uniqueKey={dataItem[key]}
-                horizontal={isHorizontal}
-                type="item"
+                nameSpace="{nameSpace}"
+                type="slot"
+                uniqueKey="header"
             >
-                <slot {index} data={dataItem}/>
+                <slot name="header"/>
             </Item>
-        {/each}
-
-        {#if tableView && range}
-            <tr
-                class="{nameSpace}__table-spacer"
-                style="border: 0 none; padding: 0; height: {range.padBehind}px"
-            />
         {/if}
+
+        <svelte:element
+            role={tableView ? null : "listbox"}
+            {...propsListDstructed.restProps}
+            style={listStyle({tableView, isHorizontal, pageMode}, range)}
+            this={tableView ? 'tbody' : propsListDstructed.tagName || 'div'}
+            class={joinClassNames(`${nameSpace}__list`, propsListDstructed.className)}
+        >
+            {#if tableView && range}
+                <tr
+                    class="{nameSpace}__table-spacer"
+                    style="border: 0 none; height: {range.padFront}px"
+                />
+            {/if}
+
+            {#each displayItems as dataItem (dataItem[key])}
+                {@const index = data.indexOf(dataItem)}
+                <Item
+                    aria-setsize={data.length}
+                    aria-posinset={index + 1}
+                    role={tableView ? null : "listitem"}
+                    style={itemStyle({tableView, isHorizontal, pageMode}, range)}
+                    {...propsItemDstructed.restProps}
+                    tagName={tableView ? "tr" : propsItemDstructed.tagName || "div"}
+                    index={index}
+                    className={propsItemDstructed.className}
+                    nameSpace="{nameSpace}"
+                    on:resize={onItemResized}
+                    uniqueKey={dataItem[key]}
+                    horizontal={isHorizontal}
+                    type="item"
+                >
+                    <slot {index} data={dataItem} />
+                </Item>
+            {/each}
+
+            {#if tableView && range}
+                <tr
+                    class="{nameSpace}__table-spacer"
+                    style="border: 0 none; padding: 0; height: {range.padBehind}px"
+                />
+            {/if}
+        </svelte:element>
+
+
+        <Item
+            tagName={tableView ? "tfoot" : "div"}
+            style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
+            {...propsFooterSlot}
+            on:resize={onItemResized}
+            type="slot"
+            ref={refFooterSlot}
+            uniqueKey="footer"
+        >
+            <slot name="footer"/>
+        </Item>
     </svelte:element>
-
-
-    <Item
-        tagName={tableView ? "tfoot" : "div"}
-        {...propsFooterSlot}
-        on:resize={onItemResized}
-        type="slot"
-        ref={refFooterSlot}
-        uniqueKey="footer"
-    >
-        <slot name="footer"/>
-    </Item>
-</svelte:element>
+</div>
