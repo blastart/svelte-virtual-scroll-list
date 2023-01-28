@@ -90,7 +90,7 @@
         range = rng
 
         displayItems = data.slice(rng.start, rng.end + 1)
-
+        console.log("displayItems", displayItems)
         tick().then(() => afterRender(getClientSize()))
     })
 
@@ -200,9 +200,9 @@
         }
     })()
 
-    window.updatePageModeFront = updatePageModeFront
-    window.triggerScroll = triggerScroll
-    window.virtual = virtual
+    // window.updatePageModeFront = updatePageModeFront
+    // window.triggerScroll = triggerScroll
+    // window.virtual = virtual
 
     /**
      * @type {(position: number) => void} - scroll to position by px
@@ -449,7 +449,6 @@
             } else if (id === "footer") {
                 virtual.updateParam("slotFooterSize", size)
             }
-            // virtual.handleSlotSizeChange()
         }
     }
 
@@ -511,14 +510,32 @@
         triggerScroll()
     }
 
+
+    let initial = true
+
+    const getChangedProps = (() => {
+        /** @return {Object<string, any>} */
+        const getCurrent = () => ({isHorizontal, tableView, pageMode})
+        let state = getCurrent()
+
+        return () => {
+            const prev = state
+            state = getCurrent()
+            return Object.keys(prev).filter((key) => prev[key] !== state[key])
+        }
+    })()
+
+
     $: scrollTo(offset)
     $: scrollToIndex(start)
     $: handleKeepsChange(keeps)
     $: propsRootDstructed = destructElementProps(propsRoot)
     $: propsListDstructed = destructElementProps(propsList)
     $: propsItemDstructed = destructElementProps(propsItem)
+
     $: {
         void pageMode
+        const changed = getChangedProps()
 
         if (isHorizontal && tableView) {
             virtual.logError("Horizontal mode doesn't support table view")
@@ -527,26 +544,30 @@
 
         scrolltDirectionKey = isHorizontal ? "scrollLeft" : "scrollTop"
         updatePageModeFront()
-        // virtual.clearSizes()
 
-        handleDataSourcesChange()
+        if (changed.includes('isHorizontal')) {
+            handleDataSourcesChange(true)
+        }
+        if (!initial) {
+            tick().then(() => {
+                virtual.refreshScrollPos()
+                console.error(changed)
+            })
+        } else {
+            initial = false
+        }
 
-
-        tick().then(() => {
-            virtual.refreshScrollPos()
-        })
     }
+
 
     $: {
         void data
         handleDataSourcesChange()
     }
+
+
+
 </script>
-<div style="position: absolute; top: 0">
-    padFront: {range?.padFront} |
-    padBehind: {range?.padBehind} |
-    pageModeOffset: {virtual.param?.pageModeOffset} |
-</div>
 
 <div class="{nameSpace}__wrapper"
     bind:this={wrapper}
