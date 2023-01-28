@@ -4,12 +4,12 @@
     import TestTableCell from "./TestTableCell.svelte"
     export let horizontalMode = false
     export let pageMode = false
+    export let fixSize = false
 
     const getItemId = createSequenceGenerator()
 
     /** @type {{height: number, uniqueKey: number, word: string }[]} */
     let items = []
-    addItems(true, 1000)
     /** @type {number} */
     export let keeps
 
@@ -21,7 +21,7 @@
         for (let i = 0; i < count; i++) {
             new_items.push({
                 uniqueKey: getItemId(),
-                height: randomInteger(40, 100),
+                height: fixSize ? 50 : randomInteger(40, 300),
                 word: randomWord(),
                 string: randomString(0, 30)
             })
@@ -31,16 +31,44 @@
     }
 
     const cells = [
-        { prop: 'uniqueKey', label: 'id', width: '32px'},
-        {prop: 'height', label: 'Height', width: '70px'},
-        {prop: 'word', label: 'Word', width: '140px'},
-        {prop: 'string', label: 'Long text', width: 'auto'}
+        {
+            prop: 'uniqueKey',
+            label: 'id',
+            width: '50px'
+        },
+        {
+            prop: 'height',
+            label: 'Height',
+            width: '70px'
+        },
+        {
+            prop: 'word',
+            label: 'Word',
+            width: '140px'
+        },
+        {
+            prop: 'string',
+            label: 'Long text',
+            width: 'auto'
+        }
     ]
+
+    addItems(true, 1000)
+
+    $: {
+        void fixSize
+        items = []
+
+        if (list) list.clearSizes()
+        addItems(true, 1000)
+    }
+
 </script>
 
 <div class="overflow-buttons">
     <button on:click={() => list.scrollTo(0)}>To top</button>
     <button on:click={() => list.scrollToBottom()}>To bottom</button>
+    <button on:click={() => addItems(true, 10)}>Add 10 items</button>
 </div>
 
 <div class="vs">
@@ -84,16 +112,45 @@
 
 
 
-    .vs :global(td), .vs :global(th) {
-        border: 1px solid #f6f6f6;
-        color: black;
-        padding: 5px;
-        text-align: left;
+    /* .vs :global(table) {
+        border: 0 none;
     }
-    .vs :global(thead tr:first-of-type) {
+    */
+    .vs :global(td), .vs :global(th) {
+        border: 1px solid #888;
+        border-top: 0 none;
+        color: black;
+        padding: 10px 5px;
+        text-align: left;
+        background-color: #eee;
+    }
+    .vs :global(thead) {
+        /* It's a bit tricky,
+            unfortunately Firefox doesn't draw borders
+            for sticky thead if the table is border-collapsed. (bugzilla: 1727594, 1531781)
+        */
+        box-shadow: 0px -1px 0 #888 inset, 0px 1px 0 #888 inset, -1px 0px 0 #888 inset, 0px 0px 0 #888 inset;
+        border: 0;
         position: sticky;
         top: 0;
+        display: table-header-group;
         background-color: #fff;
     }
+    .vs :global(thead th) {
+        background-color: transparent;
+        /* for firefox */
+        box-shadow: -1px 0px 0 #888;
+    }
 
+    /*
+    .vs :global(tbody tr) {
+        animation: fadeInOpacity 200ms ease-in-out forwards;
+    }
+
+
+    @keyframes fadeInOpacity {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    */
 </style>

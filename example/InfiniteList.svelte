@@ -5,6 +5,8 @@
     import TestItem from "./TestItem.svelte"
     export let horizontalMode = false
     export let pageMode = false
+    export let fixSize = false
+
     /** @type {number} */
     export let keeps
 
@@ -25,7 +27,7 @@
             new_items.push({
                 uniqueKey: getItemId(),
                 minHeight: horizontalMode ? '250px' : 'auto',
-                size: randomInteger(40, 260)
+                size: fixSize ? 100 : randomInteger(40, 260)
             })
         return new_items
     }
@@ -63,7 +65,9 @@
     }
 
     $: {
+        void fixSize
         void horizontalMode
+        if (list) list.clearSizes()
         items = itemsFactory(70)
     }
 

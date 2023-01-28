@@ -7,6 +7,7 @@
     import TestItem from "./TestItem.svelte"
     export let horizontalMode = false
     export let pageMode = false
+    export let fixSize = false
 
     const getItemId = createSequenceGenerator()
     const getNotificationId = createSequenceGenerator()
@@ -27,7 +28,7 @@
             new_items.push({
                 uniqueKey: getItemId(),
                 minHeight: horizontalMode ? '200px' : 'auto',
-                size: randomInteger(30, 180)
+                size: fixSize ? 100 : randomInteger(30, 180)
             })
         if (top)
             $items = [...new_items, ...$items]
@@ -57,9 +58,14 @@
     }
 
     $: {
+        void fixSize
         void horizontalMode
         items.set([])
+
+        if (list) list.clearSizes()
+
         addItems(false, 5)
+
     }
 </script>
 

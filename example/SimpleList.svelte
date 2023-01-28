@@ -5,6 +5,7 @@
     import TestItem from "./TestItem.svelte"
     export let horizontalMode = false
     export let pageMode = false
+    export let fixSize = false
 
     const getItemId = createSequenceGenerator()
     const getNotificationId = createSequenceGenerator()
@@ -14,11 +15,6 @@
     /** @type {{size: number, uniqueKey: number, minHeight: string }[]} */
     let items = []
 
-    $: {
-        void horizontalMode
-        items = []
-        addItems(1000)
-    }
 
     /** @type {VirtualScroll} */
     let list
@@ -32,7 +28,7 @@
             new_items.push({
                 uniqueKey: getItemId(),
                 minHeight: horizontalMode ? '250px' : 'auto',
-                size: randomInteger(20, 260)
+                size: fixSize ? 100 : randomInteger(40, 260)
             })
         }
         items = [...items, ...new_items]
@@ -49,6 +45,15 @@
             // eslint-disable-next-line no-self-assign
             notifications = notifications
         }, 5000)
+    }
+
+
+    $: {
+        void fixSize
+        void horizontalMode
+        items = []
+        if (list) list.clearSizes()
+        addItems(1000)
     }
 </script>
 

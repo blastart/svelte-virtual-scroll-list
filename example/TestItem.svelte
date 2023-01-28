@@ -24,6 +24,7 @@
     export let horizontalMode = false
 
     $: {
+
         if (size) {
             if (horizontalMode) {
                 width = size + "px"
@@ -52,7 +53,7 @@
         /* Don't set margin top and bottom together! It will break size counting */
         padding: 8px;
         color: black;
-        background-color: #f6f6f6;
+        background-color: #ccc;
         border-radius: 20px;
     }
 </style>

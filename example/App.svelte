@@ -56,6 +56,7 @@
         const params = new URLSearchParams()
         if (pageName) params.set("page", pageName)
         if (pageMode) params.set("pageMode", "1")
+        if (fixSize) params.set("fixSize", "1")
         if (horizontalMode) params.set("horizontal", "1")
         if (keeps !== keepsDefault) params.set("keeps", keeps.toString())
         return '?' + params.toString()
@@ -63,6 +64,7 @@
 
     let currentPage = getPageByName(getParam("page"))
     let horizontalMode = getParam("horizontal") === "1"
+    let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") === "1"
     let keeps =  parseKeepsParam()
     let testOffsetChange = false
@@ -79,6 +81,7 @@
     }
 
     $: {
+        setParam("fixSize", fixSize ? "1" : "0")
         setParam("horizontal", horizontalMode ? "1" : "0")
         setParam("pageMode", pageMode ? "1" : "0")
         setParam("keeps", keeps + "")
@@ -129,7 +132,10 @@
                         <input type="checkbox" bind:checked={horizontalMode} /> horizontal
                     </label>
                     <label>
-                        keeps <input style="width: 50px" maxlength="3" min="3" max="200" type="number" bind:value={keeps} />
+                        <input type="checkbox" bind:checked={fixSize} /> fixSize
+                    </label>
+                    <label>
+                        keeps <input style="width: 50px" maxlength="3" min="1" max="200" type="number" bind:value={keeps} />
                     </label>
 
                     <label style="opacity: 0.75; margin-left: auto;" title="Use history.pushState for navigation">
@@ -150,7 +156,7 @@
     </header>
     <hr class="h-line" />
     <main>
-        <svelte:component keeps={keeps} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
+        <svelte:component keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
     </main>
 </div>
 
@@ -161,6 +167,7 @@
     label {
         display: inline-block;
         margin-right: 1em;
+        font-size: 14px;
     }
 
     label input {
