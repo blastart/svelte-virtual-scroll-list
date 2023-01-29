@@ -56,6 +56,12 @@
     /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
+    export let keepsBehaviour = Virtual.KEEPS_BEHAVIOUR.AS_IS
+
+    /** @return {('scrollLeft'|'scrollTop')} */
+    const getScrolltDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
+
+
     /**
      * @param {import('./index').TypeElementProps} elementProps
      * @returns {{tagName?: string, className?: string, restProps: Object<string, any>}}
@@ -68,17 +74,14 @@
     /** @type  {import('./index').TypeDataItem[]} */
     let displayItems = []
 
-    /** @type {"scrollLeft" | "scrollTop"} */
-    let scrolltDirectionKey
-
     /** @type {import('./virtual').TypeRange | null} */
     let range = null
 
 
-
+    // TODO: reveal new properties from Virtual.param
     const virtual = new Virtual({
         keeps: keeps,
-        keepsBehaviour: Virtual.KEEPS_BEHAVIOUR.AUTO_INCREASE,
+        keepsBehaviour: keepsBehaviour,
         estimateSize: estimateSize,
         buffer: Math.round(keeps / 3) || 5, // recommend for a third of keeps
         uniqueIds: getUniqueIdFromDataSources(),
@@ -90,7 +93,7 @@
         range = rng
 
         displayItems = data.slice(rng.start, rng.end + 1)
-        console.log("displayItems", displayItems)
+        // console.log("displayItems", displayItems)
         tick().then(() => afterRender(getClientSize()))
     })
 
@@ -131,7 +134,7 @@
      */
     export function getScrollPos() {
         if (!browser) return 0
-
+        const scrolltDirectionKey = getScrolltDirectionKey()
         if (pageMode) {
             return document.documentElement[scrolltDirectionKey] || document.body[scrolltDirectionKey]
         } else if (tableView) {
@@ -204,13 +207,14 @@
 
     // window.updatePageModeFront = updatePageModeFront
     // window.triggerScroll = triggerScroll
-    // window.virtual = virtual
+    window.virtual = virtual
 
     /**
      * @type {(position: number) => void} - scroll to position by px
      */
     export function scrollTo(position) {
         if (!browser) return
+        const scrolltDirectionKey = getScrolltDirectionKey()
 
         if (pageMode) {
             document.body[scrolltDirectionKey] = position
@@ -495,29 +499,31 @@
      */
     function handleKeepsChange(keeps) {
         virtual.updateParam("keeps", keeps)
-        virtual.handleDataSourcesChange()
+        virtual.handleDataSourcesChange('handleKeepsChange')
     }
 
-    async function handleDataSourcesChange(reset = false) {
+    async function handleDataSourcesChange(reset = false, log = '') {
         if (reset) {
             virtual.reset()
             return
         }
 
         virtual.updateParam("uniqueIds", getUniqueIdFromDataSources())
-        virtual.handleDataSourcesChange()
+        virtual.handleDataSourcesChange(log + ' reset: ' + reset)
 
         await tick()
 
         triggerScroll()
+
     }
 
 
-    let initial = true
 
     const getChangedProps = (() => {
         /** @return {Object<string, any>} */
-        const getCurrent = () => ({isHorizontal, tableView, pageMode})
+        const getCurrent = () => ({
+            isHorizontal, tableView, pageMode, keepsBehaviour, data
+        })
         let state = getCurrent()
 
         return () => {
@@ -535,8 +541,15 @@
     $: propsListDstructed = destructElementProps(propsList)
     $: propsItemDstructed = destructElementProps(propsItem)
 
+    const initial = { value: true }
+
     $: {
+        void data
         void pageMode
+        void keepsBehaviour
+        void isHorizontal
+        void tableView
+
         const changed = getChangedProps()
 
         if (isHorizontal && tableView) {
@@ -544,28 +557,27 @@
             isHorizontal = false
         }
 
-        scrolltDirectionKey = isHorizontal ? "scrollLeft" : "scrollTop"
         updatePageModeFront()
 
         if (changed.includes('isHorizontal')) {
-            handleDataSourcesChange(true)
+            handleDataSourcesChange(true, 'isHorizontal')
+        } else if (changed.includes('keepsBehaviour')) { // TODO: not updating
+            handleDataSourcesChange(true, 'keepsBehaviour')
+        } else  if (changed.includes('data')) {
+            handleDataSourcesChange(false, 'dataSoftChange')
         }
-        if (!initial) {
+
+        console.error(changed)
+
+        if (!initial.value) {
             tick().then(() => {
                 virtual.refreshScrollPos()
                 console.error(changed)
             })
-        } else {
-            initial = false
+            initial.value = false
         }
-
     }
 
-
-    $: {
-        void data
-        handleDataSourcesChange()
-    }
 
 
 
