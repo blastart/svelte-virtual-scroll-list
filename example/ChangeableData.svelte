@@ -59,20 +59,21 @@
         </div>
     </VirtualScroll>
 </div>
-<button on:click={() => addItems(10, true)}>Add 10 to top</button>
-<button on:click={() => addItems(10, false)}>Add 10 to bottom</button>
-<button on:click={list.scrollToBottom}>To bottom</button>
-<button on:click={async() => {
-    addItems(1, false)
-    await tick()
-    list.scrollToBottom()
-}}>Add 1 and scroll to bottom
-</button>
-<button on:click={() => {
-    items[98].size = randomInteger(10, 450)
-    items = [...items]
-}}>Random size for item 98</button>
-
+<div class="overflow-buttons">
+    <button on:click={() => addItems(10, true)}>Add 10 to top</button>
+    <button on:click={() => addItems(10, false)}>Add 10 to bottom</button>
+    <button on:click={list.scrollToBottom}>To bottom</button>
+    <button on:click={async() => {
+        addItems(1, false)
+        await tick()
+        list.scrollToBottom()
+    }}>Add 1 and scroll to bottom
+    </button>
+    <button on:click={() => {
+        items[98].size = randomInteger(10, 450)
+        items = [...items]
+    }}>Random size for item 98</button>
+</div>
 
 <style>
     .vs{

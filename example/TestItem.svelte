@@ -44,8 +44,8 @@
     style:min-width={minWidth}
     style:min-height={minHeight}
 >
-    ({horizontalMode ? width : height}) <br>
-    key: {uniqueKey}
+    key: {uniqueKey} |
+    {horizontalMode ? width : height}
 </div>
 
 <style>
@@ -55,5 +55,9 @@
         color: black;
         background-color: #ccc;
         border-radius: 20px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>

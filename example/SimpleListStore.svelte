@@ -90,15 +90,17 @@
         </div>
     </VirtualScroll>
 </div>
-<button on:click={addItemsToTop}>Add 10 to top</button>
-<button on:click={addItemsToBottom}>Add 10 to bottom</button>
-<button on:click={list.scrollToBottom}>To bottom</button>
-<button on:click={async() => {
-    addItems(false, 1)
-    await tick()
-    list.scrollToBottom()
-}}>Add 1 and scroll to bottom
-</button>
+<div class="overflow-buttons">
+    <button on:click={addItemsToTop}>Add 10 to top</button>
+    <button on:click={addItemsToBottom}>Add 10 to bottom</button>
+    <button on:click={list.scrollToBottom}>To bottom</button>
+    <button on:click={async() => {
+        addItems(false, 1)
+        await tick()
+        list.scrollToBottom()
+    }}>Add 1 and scroll to bottom
+    </button>
+</div>
 <div class="toasts">
     {#each Object.entries(notifications) as [id, action] (id)}
         <div animate:flip>{action} </div>

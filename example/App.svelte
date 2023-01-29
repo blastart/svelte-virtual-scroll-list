@@ -163,11 +163,17 @@
 <style>
     h1 {
         font-size: 24px;
+        color: #888;
+        margin-bottom: 1.25em;
     }
     label {
         display: inline-block;
         margin-right: 1em;
         font-size: 14px;
+        color: var(--primary-color);
+    }
+    label:hover {
+        color: var(--hihglight-color);
     }
 
     label input {
@@ -195,9 +201,10 @@
 
     :global(.sticky-header.page-mode ) header {
         margin-bottom: 2rem;
-        background-color: rgba(200, 200, 200, 0.85);
+        background-color: rgba(64, 64, 64, 0.9);
         position: sticky;
         top: 0;
+        color: #fff;
         box-sizing: border-box;
         z-index: 100;
         width: 100%;
@@ -220,7 +227,6 @@
         width: 100%;
         box-sizing: border-box;
         padding: 1em;
-        background: #eee;
     }
     :global(.horizontal-mode.page-mode div.overflow-buttons) {
         bottom: 0;
@@ -239,7 +245,6 @@
     .page-selector {
         margin-right: 1rem;
         cursor: pointer;
-        color: blue;
     }
 
     .page-selector:hover {
@@ -250,37 +255,21 @@
         font-weight: bold;
     }
 
-
+    h1,
     .page-state-container,
     .page-selector-inner {
         max-width: 860px;
-        margin: 0 auto;
+        margin-left: auto;
+        margin-right: auto;
     }
     .source {
         float: right;
-        color: blue;
     }
 
-    :global(.toasts){
-        position: fixed;
-        top: 0;
-        right: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
-    }
-    :global(.toasts > div) {
-        background: rgba(0, 0, 0, 0.75);
-        padding: 10px;
-        border-radius: 5px;
-        color: white;
-        text-align: center;
-    }
 
     :global(.overflow-buttons) {
         z-index: 2;
-        top: 10px;
+        top: 5px;
         position: sticky;
         text-align: right;
         box-sizing: border-box;
@@ -308,8 +297,9 @@
         border-radius: 12px;
         transform-origin: top left;
         transform: scale(2);
-        background-color: yellow;
+        background-color: var(--hihglight-color);
         padding: 0.5rem 1rem;
+        color: black;
     }
 
     :global(.test-offset-change) {
