@@ -2,6 +2,7 @@
     import SimpleList from "./SimpleList.svelte"
     import SimpleListStore from "./SimpleListStore.svelte"
     import InfiniteList from "./InfiniteList.svelte"
+    import {KEEPS_BEHAVIOUR} from "../src/virtual"
     // import PageList from "./PageList.svelte"
     import Table from "./Table.svelte"
     import ChangeableData from "./ChangeableData.svelte"
@@ -59,14 +60,19 @@
         if (fixSize) params.set("fixSize", "1")
         if (horizontalMode) params.set("horizontal", "1")
         if (keeps !== keepsDefault) params.set("keeps", keeps.toString())
+        if (behavior !== "auto") params.set("behavior", behavior)
         return '?' + params.toString()
     }
+    const behaviors = Object.values(KEEPS_BEHAVIOUR)
 
     let currentPage = getPageByName(getParam("page"))
     let horizontalMode = getParam("horizontal") === "1"
     let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") === "1"
     let keeps =  parseKeepsParam()
+    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AS_IS
+
+
     let testOffsetChange = false
 
     /**
@@ -85,6 +91,7 @@
         setParam("horizontal", horizontalMode ? "1" : "0")
         setParam("pageMode", pageMode ? "1" : "0")
         setParam("keeps", keeps + "")
+        setParam("behavior", behavior)
         document.documentElement.classList.toggle(
             "horizontal-mode", horizontalMode && !currentPage.horizontalModeNotSupported
         )
@@ -137,6 +144,14 @@
                     <label>
                         keeps <input style="width: 50px" maxlength="3" min="1" max="200" type="number" bind:value={keeps} />
                     </label>
+                    <label>
+                        behavior
+                        <select bind:value={behavior} style:width='100px'>
+                            {#each behaviors as value}
+                                <option value={value}>{value}</option>
+                            {/each}
+                        </select>
+                    </label>
 
                     <label style="opacity: 0.75; margin-left: auto;" title="Use history.pushState for navigation">
                         <input type="checkbox" bind:checked={navPushState} /> pushState
@@ -156,7 +171,7 @@
     </header>
     <hr class="h-line" />
     <main>
-        <svelte:component keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
+        <svelte:component behavior={behavior} keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
     </main>
 </div>
 

@@ -12,6 +12,9 @@
     /** @type {number} */
     export let keeps
 
+    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOUR} */
+    export let behavior
+
     /** @type {{size: number, uniqueKey: number, minHeight: string }[]} */
     let items = []
 
@@ -68,6 +71,7 @@
         data={items}
         key="uniqueKey"
         keeps={keeps}
+        keepsBehaviour={behavior}
         pageMode={pageMode}
         isHorizontal={horizontalMode}
         let:data

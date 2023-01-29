@@ -13,6 +13,9 @@
     /** @type {number} */
     export let keeps
 
+    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOUR} */
+    export let behavior
+
     /** @type {VirtualScroll} */
     let list
 
@@ -77,6 +80,7 @@
         data={items}
         key="uniqueKey"
         keeps={keeps}
+        keepsBehaviour={behavior}
         let:data
         pageMode={pageMode}
         tableView={true}

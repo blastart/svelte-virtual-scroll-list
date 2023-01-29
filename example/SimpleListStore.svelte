@@ -14,6 +14,9 @@
     /** @type {number} */
     export let keeps
 
+    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOUR} */
+    export let behavior
+
     const items = writable([])
 
     /** @type {VirtualScroll} */
@@ -75,6 +78,7 @@
         data={$items}
         key="uniqueKey"
         keeps={keeps}
+        keepsBehaviour={behavior}
         pageMode={pageMode}
         isHorizontal={horizontalMode}
         let:data

@@ -10,6 +10,9 @@
     /** @type {number} */
     export let keeps
 
+    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOUR} */
+    export let behavior
+
     const getItemId = createSequenceGenerator()
 
     let loading = false
@@ -83,6 +86,7 @@
         data={items}
         key="uniqueKey"
         keeps={keeps}
+        keepsBehaviour={behavior}
         pageMode={pageMode}
         isHorizontal={horizontalMode}
         let:data
