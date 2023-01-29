@@ -104,7 +104,7 @@
 
     const dispatch = createEventDispatcher()
 
-    export const triggerScroll = () => {
+    export function triggerScroll() {
         dispatch("scroll", {
             event: new CustomEvent(defaultNameSpace + '-scroll-tirgger'),
             range: virtual.getRange()
@@ -181,20 +181,22 @@
             if (!root || !browser) return
 
             let offset = 0
+            let offsetRaw = 0
 
             if (pageMode) {
                 const rect = root.getBoundingClientRect()
-                const {defaultView} = root.ownerDocument
+                const {defaultView = window} = root.ownerDocument
                 if (!defaultView) return
 
-                offset = isHorizontal
-                    ? (rect.left + window.pageXOffset)
-                    : (rect.top + window.pageYOffset)
+                offsetRaw = isHorizontal
+                    ? (rect.left + defaultView.pageXOffset)
+                    : (rect.top + defaultView.pageYOffset)
+
+                offset = Math.round(offsetRaw * 1000) / 1000
             }
 
-
             if (offset === lastOffset) return
-            console.warn("updatePageModeFront", offset, pageMode)
+            console.warn("updatePageModeFront", offset, offsetRaw, pageMode)
             virtual.updateParam("pageModeOffset", offset)
             lastOffset = offset
         }

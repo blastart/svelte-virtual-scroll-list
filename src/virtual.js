@@ -318,31 +318,6 @@ class Virtual {
     /** this[key] is compared to this.last[key] */
     eqSelfKeys = ["clientSize", "scrollSize", "scrollPos", "dataChanges"]
 
-    /**
-     * @param {TypeParam} param
-     * @param {TypeRange} range
-     * @param {number} rangeSize
-     */
-    getLastChanged(param, range, rangeSize) {
-        const prevParam = this.last.param || {...defaults, uniqueIds: []}
-        return [
-            ...getObjChangesByKeys(this.last.range, range,  this.eqRangeKeys, 'range.'),
-            ...getObjChangesByKeys(this.last, this,  this.eqSelfKeys, 'this.'),
-            ...getObjChangesByKeys(this.last, {rangeSize},  ['rangeSize']),
-            ...getObjChangesByKeys(prevParam, param,  this.eqParamKeys, 'param.')
-        ]
-    }
-
-    /**
-     * @param {TypeParam} param
-     * @param {TypeRange} range
-     * @param {number} rangeSize
-     */
-    setLastChanged(param, range, rangeSize) {
-        this.last.range = {...range}
-        this.last.param = {...param}
-        this.last.rangeSize = rangeSize
-    }
 
     /**
      * @param {TypeParamForInit} param
@@ -953,6 +928,26 @@ class Virtual {
         return rangeSize
     }
 
+
+    /**
+     * setting to a new range and rerender
+     * @param {number} start
+     * @param {number} end
+     * @returns {boolean} whether range changed
+    */
+    updateRange(start, end) {
+
+        this.range.start = start  // keep on top, getPadFront will uses this
+        this.range.end = end // keep on top, getPadBehind will uses this
+        this.range.padFront  = this.getPadFront()
+        this.range.padBehind = this.getPadBehind()
+
+        if (typeof this.callUpdate === "function") {
+            this.callUpdate(this.getRange(), this.afterRenderCallback)
+        }
+        return true
+    }
+
     /**
      * check whether need render more items to fill the viewport according to the current keepsBehaviour
     */
@@ -1051,27 +1046,31 @@ class Virtual {
             log && console.log('range bigger than viewport', this.getKeepsCalculated())
         }
     }
+
     /**
-     * setting to a new range and rerender
-     * @param {number} start
-     * @param {number} end
-     * @returns {boolean} whether range changed
-    */
-    updateRange(start, end) {
-
-        this.range.start = start  // keep on top, getPadFront will uses this
-        this.range.end = end // keep on top, getPadBehind will uses this
-        this.range.padFront  = this.getPadFront()
-        this.range.padBehind = this.getPadBehind()
-
-        if (typeof this.callUpdate === "function") {
-            this.callUpdate(this.getRange(), this.afterRenderCallback)
-        }
-        return true
+     * @param {TypeParam} param
+     * @param {TypeRange} range
+     * @param {number} rangeSize
+     */
+    getLastChanged(param, range, rangeSize) {
+        const prevParam = this.last.param || {...defaults, uniqueIds: []}
+        return [
+            ...getObjChangesByKeys(this.last.range, range,  this.eqRangeKeys, 'range.'),
+            ...getObjChangesByKeys(this.last, this,  this.eqSelfKeys, 'this.'),
+            ...getObjChangesByKeys(this.last, {rangeSize},  ['rangeSize']),
+            ...getObjChangesByKeys(prevParam, param,  this.eqParamKeys, 'param.')
+        ]
     }
 
-    dummy() {
-
+    /**
+     * @param {TypeParam} param
+     * @param {TypeRange} range
+     * @param {number} rangeSize
+     */
+    setLastChanged(param, range, rangeSize) {
+        this.last.range = {...range}
+        this.last.param = {...param}
+        this.last.rangeSize = rangeSize
     }
 
     /**
@@ -1123,6 +1122,7 @@ class Virtual {
             ? this.fixedSizeValue
             : (this.averageSize || this.param?.estimateSize || 0)
     }
+
 
     scrollToIndex(index = 0) {
         this.param?.scrollTo(
