@@ -1,7 +1,16 @@
 <script>
-    import Virtual, {joinClassNames, defaultNameSpace, rifFn, browser} from "./virtual"
+    import Virtual, {joinClassNames, defaultNameSpace, rifFn, browser, setDebug} from "./virtual"
     import Item from "./Item.svelte"
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
+
+    /**
+     * @type {boolean & {
+     *  efficiency?: import('./virtual').TypeLogEfficiency,
+     *  info?: import('./virtual').TypeLogInfo,
+     *  logErrors?: boolean,
+     * }} debugging options
+    */
+    export let debug = false
 
     /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
     export let key = "id"
@@ -12,11 +21,30 @@
     /** @type {import('./index').TypeDataItem[]} Source for list */
     export let data
 
-    /** @type {number} Count of rendered items */
-    export let keeps = 30
+    /** @type {import('./virtual').TypeKeeps | undefined}  */
+    export let keeps = undefined
 
-    /** @type {number} Estimate size of each item, needs for smooth scrollbar */
-    export let estimateSize = 50
+    /** @type {import('./virtual').TypeBuffer | undefined}  */
+    export let buffer = undefined
+
+    /** @type {import('./virtual').TypeSlotHeaderSize | undefined}  */
+    export let slotHeaderSize = undefined
+
+    /** @type {import('./virtual').TypeSlotFooterSize | undefined}  */
+    export let slotFooterSize = undefined
+
+    /** @type {import('./virtual').TypeFillMaxSize | undefined}  */
+    export let fillMaxSize = undefined
+
+    /** @type {import('./virtual').TypeFillSizeExtra | undefined}  */
+    export let fillSizeExtra = undefined
+
+    /** @type {import('./virtual').TypeAutoUpdateAverageSize | undefined}  */
+    export let autoAutoUpdateAverageSize = undefined
+
+
+    /** @type {number| undefined} Estimate size of each item, needs for smooth scrollbar */
+    export let estimateSize = undefined
 
     /** @type {boolean}  Scroll direction */
     export let isHorizontal = false
@@ -58,6 +86,8 @@
 
     export let keepsBehaviour = Virtual.KEEPS_BEHAVIOUR.AS_IS
 
+    let keepsCalculated = keeps
+
     /** @return {('scrollLeft'|'scrollTop')} */
     const getScrolltDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
 
@@ -78,24 +108,36 @@
     let range = null
 
 
+
     // TODO: reveal new properties from Virtual.param
     const virtual = new Virtual({
-        keeps: keeps,
-        keepsBehaviour: keepsBehaviour,
-        estimateSize: estimateSize,
-        buffer: Math.round(keeps / 3) || 5, // recommend for a third of keeps
+        keeps: keeps || 30,
+        keepsBehaviour,
+        estimateSize,
+        fillMaxSize,
+        fillSizeExtra,
+        autoAutoUpdateAverageSize,
+        slotHeaderSize,
+        slotFooterSize,
+        buffer: buffer || Math.round(keeps || 30 / 3) || 10, // recommend for a third of keeps
         uniqueIds: getUniqueIdFromDataSources(),
-        scrollTo: (pos) => {
-            scrollTo(pos)
-        }
+        scrollTo: (pos) => scrollTo(pos)
     }, function(rng, afterRender) {
         // callUpdate
         range = rng
 
         displayItems = data.slice(rng.start, rng.end + 1)
-        // console.log("displayItems", displayItems)
+        if (displayItems.length === 0) {
+            console.error(
+                "displayItems", displayItems, {
+                    start: rng.start,
+                    end: rng.end,
+                    irlEnd: rng.end + 1,
+                    dataLength: data.length
+                })
+        }
         tick().then(() => afterRender(getClientSize()))
-    })
+    }, typeof debug && typeof debug.logErrors === "boolean" ? debug.logErrors  : true)
 
     /** @type {HTMLElement} for scrollable tables **/
     let wrapper
@@ -199,7 +241,6 @@
             }
 
             if (offset === lastOffset) return
-            console.warn("updatePageModeFront", offset, offsetRaw, pageMode)
             virtual.updateParam("pageModeOffset", offset)
             lastOffset = offset
         }
@@ -287,6 +328,7 @@
      */
     export function wrapperStyle({tableView, pageMode}) {
         const cssProps = [
+            'position: relative',
             'height: inherit'
         ]
         if (tableView && !pageMode) {
@@ -494,101 +536,143 @@
         }
     }
 
-    /**
-     * @param {number} keeps
-     */
-    function handleKeepsChange(keeps) {
-        virtual.updateParam("keeps", keeps)
-        virtual.handleDataSourcesChange('handleKeepsChange')
-    }
+
 
     async function handleDataSourcesChange(reset = false, log = '') {
         if (reset) {
             virtual.reset()
             return
         }
-
         virtual.updateParam("uniqueIds", getUniqueIdFromDataSources())
-        virtual.handleDataSourcesChange(log + ' reset: ' + reset)
-
-        await tick()
-
-        triggerScroll()
-
+        virtual.handleDataSourcesChange(log + ' | reset: ' + reset)
     }
 
-
+    // const initial = { value: true }
 
     const getChangedProps = (() => {
-        /** @return {Object<string, any>} */
+        /** @return {Object<string, unknown>} */
         const getCurrent = () => ({
-            isHorizontal, tableView, pageMode, keepsBehaviour, data
+            isHorizontal, tableView, pageMode, keepsBehaviour, data, keeps, buffer,
+            estimateSize, fillMaxSize, fillSizeExtra, autoAutoUpdateAverageSize,
+            slotHeaderSize, slotFooterSize
         })
         let state = getCurrent()
 
         return () => {
             const prev = state
             state = getCurrent()
-            return Object.keys(prev).filter((key) => prev[key] !== state[key])
+            const keys = Object.keys(prev).filter((key) => prev[key] !== state[key])
+
+            /** @type {Object.<string, {key: string, from: any, to: any}>} */
+            const values = {}
+
+            return {
+                keys,
+                values: keys.reduce((acc, key) => {
+                    acc[key] = { key, to: state[key], from: prev[key] }
+                    return acc
+                }, values)
+            }
         }
     })()
 
+    const propsTriggersReset = ['isHorizontal']
 
-    $: scrollTo(offset)
-    $: scrollToIndex(start)
-    $: handleKeepsChange(keeps)
-    $: propsRootDstructed = destructElementProps(propsRoot)
-    $: propsListDstructed = destructElementProps(propsList)
-    $: propsItemDstructed = destructElementProps(propsItem)
+    const paramsToUpdate = [
+        'keepsBehaviour',
+        'keeps',
+        'buffer',
+        'estimateSize',
+        'fillMaxSize',
+        'fillSizeExtra',
+        'autoAutoUpdateAverageSize',
+        'slotHeaderSize',
+        'slotFooterSize'
+    ]
 
-    const initial = { value: true }
-
-    $: {
-        void data
-        void pageMode
-        void keepsBehaviour
-        void isHorizontal
-        void tableView
-
+    function handlePropsChange() {
         const changed = getChangedProps()
 
-        if (isHorizontal && tableView) {
-            virtual.logError("Horizontal mode doesn't support table view")
-            isHorizontal = false
-        }
+        if (changed.keys.length === 0) return
+
 
         updatePageModeFront()
 
-        if (changed.includes('isHorizontal')) {
-            handleDataSourcesChange(true, 'isHorizontal')
-        } else if (changed.includes('keepsBehaviour')) { // TODO: not updating
-            handleDataSourcesChange(true, 'keepsBehaviour')
-        } else  if (changed.includes('data')) {
-            handleDataSourcesChange(false, 'dataSoftChange')
-        }
+        changed.keys.forEach(param => {
+            if (paramsToUpdate.includes(param)) {
+                // TODO: fix type
+                // @ts-ignore
+                virtual.updateParam(param, changed.values[param].to)
+            }
+        })
 
-        console.error(changed)
+        handleDataSourcesChange(
+            changed.keys.some((prop) => propsTriggersReset.includes(prop)), // hard reset
+            changed.keys.join(', ')
+        )
 
-        if (!initial.value) {
+        console.info('params changed', changed, data.length)
+
+
+        if (changed.keys.includes('pageMode') || changed.keys.includes('isHorizontal')) {
             tick().then(() => {
+                console.warn('refreshScrollPos')
                 virtual.refreshScrollPos()
-                console.error(changed)
             })
-            initial.value = false
         }
     }
 
 
+    $: scrollTo(offset)
+    $: scrollToIndex(start)
+    $: {
+        setDebug(debug)
+        if (debug) {
+            void displayItems.length
+            keepsCalculated = virtual.getKeepsCalculated()
+        }
+    }
+    $: propsRootDstructed = destructElementProps(propsRoot)
+    $: propsListDstructed = destructElementProps(propsList)
+    $: propsItemDstructed = destructElementProps(propsItem)
+    $: {
+        void data
+        void isHorizontal
+        void pageMode
+        // params
+        void tableView
+        void buffer
+        void keeps
+        void keepsBehaviour
+        void estimateSize
+        void fillMaxSize
+        void fillSizeExtra
+        void autoAutoUpdateAverageSize
+        void slotHeaderSize
+        void slotFooterSize
 
+        if (isHorizontal && tableView) {
+            virtual.logError("Horizontal mode doesn't support table view")
+            isHorizontal = false
+        } else {
+            handlePropsChange()
+        }
+    }
 
 </script>
+
+
 
 <div class="{nameSpace}__wrapper"
     bind:this={wrapper}
     on:scroll={onWrapperScroll}
     style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
 >
-
+    {#if (debug)}
+        <div class="{defaultNameSpace}__debug" style="z-index: 20; position: fixed; pointer-events: none; top: 2rem; right: 2rem; padding: 0.5rem; background: #222; color: #ccc; font-size: 24px;">
+            keeps: {keepsCalculated}
+        </div>
+    {/if}
 
     <svelte:element
         {...propsRootDstructed.restProps}

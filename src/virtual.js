@@ -1,18 +1,193 @@
+
+
+/**
+ * @typedef {0 | 1 | 2} TypeLogEfficiency
+ * 0 - no log
+ * 1 - log  major efficient improvements
+ * 2 - log  major & minor improvements
+*/
+
+/** @type {TypeLogEfficiency} - logEfficiency */
+let logEfficiency = 1
+
+
+/**
+ * @typedef {0 | 1 | 2} TypeLogInfo
+ * 0 - no log
+ * 1 - log  major info
+ * 2 - log  major & minor info
+*/
+
+/** @type {TypeLogInfo} - logEfficiency */
+let logInfo = 1
+
+
+/**
+ * @param {boolean | {
+ *  efficiency?: TypeLogEfficiency,
+ *  info?: TypeLogInfo,
+ *  logErrors?: boolean,
+ * }}  options
+*/
+
+export const setDebug = (options) => {
+    if (typeof options === 'boolean') {
+        logEfficiency = 1
+        logInfo = 1
+        return
+    }
+    if (typeof options.efficiency === 'number') {
+        if (options.efficiency < 0 || options.efficiency > 2) {
+            logEfficiency = options.efficiency
+        }
+    }
+    if (typeof options.info === 'number') {
+        if (options.info < 0 || options.info > 2) {
+            logInfo = options.info
+        }
+    }
+}
+
 export const defaultNameSpace = 'virtual-scroll'
 
 export const browser = typeof window !== "undefined"
 
 /**
- * @type {0 | 1 | 2}
- * 0 - no log
- * 1 - log  major efficient improvements
- * 2 - log  major & minor improvements
-*/
-const logEfficiency = 1
-
-/**
  * @typedef {false | 0 | "" | null | undefined | void} TypeFalsy
  */
+
+// /**
+//  * contains the calculated range of the items to render
+//  * @typedef {Object.<string, any>} TypeRange
+//  * @property {number} start
+//  * @property {number} end
+//  * @property {number} padFront
+//  * @property {number} padBehind
+//  */
+
+/**
+ * contains the calculated range of the items to render
+ * @typedef {{
+ *  start: number,
+ *  end: number,
+ *  padFront: number,
+ *  padBehind: number
+ * }} TypeRange
+
+/**
+ * @typedef {string | number} TypeUniqueId
+ */
+
+/**
+ * Scroll to position call to be applied on the current scollable container.
+ * @typedef {(position: TypeScrollPos) => void} TypeScrollToFn
+ */
+
+
+
+/**
+ * items to render in addition to the keeps. recommend for a third of keeps
+ * @typedef {number} TypeBuffer - buffer
+ */
+/**
+ * how many items to keep in the DOM
+ * @typedef {number} TypeKeeps - keeps
+ */
+/**
+ * estimate size of the item
+ * @typedef {number} TypeEstimateSize - estimateSize
+ */
+/**
+ * behaviour of the keeps calculation
+ * @typedef {KEEPS_BEHAVIOUR} TypeKeepsBehaviour - keepsBehaviour
+ */
+/**
+ * Maximum fill height, prevents infinite cycles if the parent element has no height set
+ * @typedef {number} TypeFillMaxSize -
+ */
+/**
+ * extra size by px to fill the viewport with items. This value is added to viewport size
+ * @typedef {number} TypeFillSizeExtra - fillSizeExtra
+ */
+/**
+ * size of the header slot
+ * @typedef {number} TypeSlotHeaderSize - slotHeaderSize
+ */
+/**
+ * size of the footer slot
+ * @typedef {number} TypeSlotFooterSize - slotFooterSize
+ */
+/**
+ * in vertical mode, offset left, otherwise offset top of the root element (eg: root.getBoundingClientRect().top + window.pageYOffset)
+ * @typedef {number} TypePageModeOffset - pageModeOffset
+ */
+/**
+ * update the average size of items after each scroll
+ * @typedef {boolean} TypeAutoUpdateAverageSize - autoAutoUpdateAverageSize
+ */
+
+
+/**
+ * Required parameters for the virtual class
+ * @typedef {{
+ *  uniqueIds: TypeUniqueId[],
+ *  scrollTo: TypeScrollToFn,
+ * }} TypeParamRequired
+*
+
+/**
+ * Optional parameters for the virtual class
+ * @typedef {{
+ * buffer: TypeBuffer,
+ * keeps: TypeKeeps,
+ * estimateSize: TypeEstimateSize,
+ * keepsBehaviour: TypeKeepsBehaviour,
+ * fillMaxSize: TypeFillMaxSize,
+ * fillSizeExtra: TypeFillSizeExtra,
+ * slotHeaderSize: TypeSlotHeaderSize,
+ * slotFooterSize: TypeSlotFooterSize,
+ * pageModeOffset: TypePageModeOffset,
+ * autoAutoUpdateAverageSize: TypeAutoUpdateAverageSize
+ * }} TypeParamOptional
+*/
+
+
+/**
+ * Virtual class constructor parameters
+ * @typedef {TypeParamRequired & TypeParamOptional} TypeParam
+*/
+
+/**
+ * Virtual class init parameters
+ * @typedef {TypeParamRequired | TypeParamOptional} TypeParamForInit
+*/
+
+/**
+ * scroll position of the root or document element depending on view modes
+ * @typedef {number} TypeScrollPos
+*/
+
+/**
+ * client size of the root or document element depending on view modes
+ * @typedef {number} TypeClientSize
+*/
+
+/**
+ * scroll size of the root or document element depending on view modes
+ * @typedef {number} TypeScrollSize
+*/
+
+/**
+ * callback to be passed to init method, will be called for all changes that require rendering
+ * @typedef {(clientSize: TypeClientSize) => void} TypeAfterRenderFn
+*/
+
+/**
+ * Virtual.init  to be called after each range calculation
+ * @typedef {(this: Virtual, rng: TypeRange, afterRender: TypeAfterRenderFn) => void | null} TypeCallUpdateFn
+*/
+
+
 
 /**
  * @param {Array<string | TypeFalsy>} classList
@@ -26,15 +201,18 @@ export const joinClassNames = (...classList) => classList
     .join(' ')
 
 /**
+ * @typedef {{key: string, from: any, to: any}} TypeObjChangedResult
+
+/**
  * getObjChangesByKeys
  * @param {Object.<string, any>} aObj - "from" object to compare
  * @param {Object.<string, any>} bObj - "to" object to compare
  * @param {string[]} keys - object keys to compare
  * @param {string} [keyPrefix] - prefix to be added to the keys in the result.
- * @returns {{key: string, from: any, to: any}[]}
+ * @returns {TypeObjChangedResult[]}
 */
 const getObjChangesByKeys = (aObj, bObj, keys = [], keyPrefix = '') => {
-    /** @type {{key: string, from: any, to: any}[]} */
+    /** @type {TypeObjChangedResult[]} */
     const changedKeys = []
 
     return keys.reduce((acc, key) => {
@@ -45,6 +223,10 @@ const getObjChangesByKeys = (aObj, bObj, keys = [], keyPrefix = '') => {
     }, changedKeys)
 }
 
+/** @param {Object.<string, any>} obj */
+const definedProps = obj => Object.fromEntries(
+    Object.entries(obj).filter(([_k, v]) => v !== undefined)
+)
 
 /**
  * @param {(...args: unknown[]) => unknown} func - function to wrap in requestIdleCallback
@@ -123,8 +305,8 @@ const DIRECTION_TYPE = {
  * @readonly
  * @enum {string}
  * @property {string} INIT - initial value when no size calculation has been saved
- * @property {string} FIXED - the elements already rendered included only elements of the same size.
- * @property {string} DYNAMIC - the elements already rendered included elements of different sizes.
+ * @property {string} FIXED - the items already rendered included only elements of the same size.
+ * @property {string} DYNAMIC - the items already rendered included elements of different sizes.
 */
 const CALC_TYPE = {
     INIT: "INIT",
@@ -135,7 +317,7 @@ const CALC_TYPE = {
 
 const LEADING_BUFFER = 1
 /** minimum number of items to render */
-const MIN_KEEPS = 2
+export const MIN_KEEPS = 3
 
 /**
  * behaviour options to calculate the number of items to render
@@ -155,68 +337,7 @@ export const KEEPS_BEHAVIOUR = {
     ACCURATE: "accurate"
 }
 
-/**
- * contains the calculated range of the items to render
- * @typedef {Object} TypeRange
- * @property {number} start
- * @property {number} end
- * @property {number} padFront
- * @property {number} padBehind
- */
 
-/**
- * @typedef {string | number} TypeUniqueId
- */
-
-
-/**
- * @typedef {Object} TypeParamRequired
- * @property {TypeUniqueId[]} uniqueIds
- * @property {(position: TypeScrollPos) => void} scrollTo Scroll to position call to be applied on the current scollable container.
-*/
-
-
-/**
- * @typedef {Object} TypeParamOptional
- * @property {number} buffer items to render in addition to the keeps. recommend for a third of keeps
- * @property {number} keeps how many items to keep in the DOM
- * @property {number} estimateSize estimate size of the item
- * @property {KEEPS_BEHAVIOUR} keepsBehaviour behaviour of the keeps calculation
- * @property {number} fillMaxSize Maximum fill height, prevents infinite cycles if the parent element has no height set
- * @property {number} fillSizeExtra extra size by px to fill the viewport with items. This value is added to viewport size
- * @property {number} slotHeaderSize size of the header slot
- * @property {number} slotFooterSize size of the footer slot
- * @property {number} pageModeOffset in vertical mode, offset left, otherwise offset top of the root element (eg: root.getBoundingClientRect().top + window.pageYOffset)
- * @property {boolean} updateAverageSize update the average size of items after each scroll
- */
-
-/**
- * @typedef {TypeParamRequired & TypeParamOptional} TypeParam
- */
-
-/**
- * @typedef {TypeParamRequired | TypeParamOptional} TypeParamForInit
- */
-
-/**
- * @typedef {number} TypeScrollPos scroll position of the root or document element depending on view modes
-*/
-
-/**
- * @typedef {number} TypeClientSize
- * @description client size of the root or document element depending on view modes
-*/
-
-/**
- * @typedef {number} TypeScrollSize scroll size of the root or document element depending on view modes
-
-/**
- * @typedef {(clientSize: TypeClientSize) => void} TypeAfterRenderFn
- */
-
-/**
- * @typedef {(this: Virtual, rng: TypeRange, afterRender: TypeAfterRenderFn) => void | null} TypeCallUpdateFn
- */
 
 const logMsgs = {
     paramIsNull: 'param is not yet initialized',
@@ -224,7 +345,8 @@ const logMsgs = {
     paramInvalidKey: 'invalid param key'
 }
 
-const defaults = {
+/** @type {TypeParamOptional} */
+export const defaults = {
     keeps: 30,
     keepsBehaviour: KEEPS_BEHAVIOUR.AUTO_ADJUST,
     slotHeaderSize: 0,
@@ -232,7 +354,7 @@ const defaults = {
     pageModeOffset: 0,
     fillSizeExtra: 100,
     fillMaxSize: 10000,
-    updateAverageSize: true,
+    autoAutoUpdateAverageSize: true,
     estimateSize: 50,
     buffer: 10
 }
@@ -255,9 +377,6 @@ class Virtual {
 
     /** the number of items to render in addition to the keeps based on the keepsBehaviour */
     keepsCalculated = 0
-
-    /** buffer value based on the keepsBehaviour */
-    bufferCalculated = 0
 
     calcType = CALC_TYPE.INIT
 
@@ -297,7 +416,8 @@ class Virtual {
      * param: TypeParam | null,
      * dataChanges: number,
      * clientSize: TypeClientSize,
-     * scrollPos:TypeScrollPos,
+     * scrollPos: TypeScrollPos,
+     * scrollPosRaw: TypeScrollSize,
      * scrollSize: TypeScrollSize,
      * rangeSize: number
      * }}
@@ -308,15 +428,19 @@ class Virtual {
         dataChanges: 0,
         clientSize: 0,
         scrollSize: 0,
+        scrollPosRaw: 0,
         scrollPos: 0,
         rangeSize: 0
     }
     /** this.range[key] is compared to this.last.range[key] */
     eqRangeKeys = ["start", "end", "padFront", "padBehind"]
+
     /**  this.param[key] is compared to this.last.param[key] */
     eqParamKeys = ["uniqueIds", ...Object.keys(defaults)]
-    /** this[key] is compared to this.last[key] */
-    eqSelfKeys = ["clientSize", "scrollSize", "scrollPos", "dataChanges"]
+    /** this[key] is compared to this.last[key]
+     * @type {Array<keyof Virtual>}
+     */
+    eqSelfKeys = ["clientSize", "scrollSize", "scrollPos", "scrollPosRaw", "dataChanges"]
 
 
     /**
@@ -346,9 +470,10 @@ class Virtual {
             ...defaults,
             scrollTo: () => this.logError("scrollTo function is not defined in param"),
             uniqueIds: []
-        }, (param || {}))
+            // TODO: validate params using updateParam()
+        }, (definedProps(param || {})))
         this.callUpdate = callUpdate
-        this.bufferCalculated = this.param?.buffer || 10
+        this.bufferCalculated = this.param?.buffer || defaults.buffer
         // size data
         this.sizes = new Map()
         this.firstRangeAvgCalculated = false
@@ -384,8 +509,8 @@ class Virtual {
     // })
 
     debounceUpdateCalculations = debounceFn(/** @type {(this: Virtual) => void} */ function() {
-        if (this.param?.updateAverageSize) {
-            this.calcAverageSize() // recalculate average size when scrolling to front
+        if (this.param?.autoAutoUpdateAverageSize) {
+            this.calcAverageSize(false, true) // recalculate average size when scrolling to front
         }
     }, 1000)
 
@@ -426,22 +551,6 @@ class Virtual {
         return this.param?.slotHeaderSize ?? 0
     }
 
-    /**
-     * @param {number} start scroll position by index
-     * @returns {TypeScrollPos} return start index scroll position
-     */
-    getScrollPosByIndex(start) {
-        return (start < 1 ? 0 : this.getIndexOffset(start)) + this.getFrontSize()
-    }
-
-    /**
-     * @param {number} px scroll position in px
-     * @returns {TypeScrollPos} return start index scroll position
-     */
-    getScrollPosByPx(px) {
-        return px + this.getFrontSize()
-    }
-
 
     /**
      * @param {TypeUniqueId[]} uniqueIds
@@ -478,9 +587,13 @@ class Virtual {
             this.logError('setPageModeOffset()', logMsgs.paramInvalidVal, value)
             return
         }
+        const newVal = Math.round(value)
+
+        if (newVal === this.param.pageModeOffset) return
+
         this.param.pageModeOffset = Math.round(value)
         this.handleFront(false, 'setPageModeOffset ' + _log)
-        this.handleBehind(false, 'setPageModeOffset ' + _log)
+        // this.handleBehind(false, 'setPageModeOffset ' + _log)
     }
 
     /**
@@ -492,6 +605,7 @@ class Virtual {
             this.logError('updateParam()', logMsgs.paramIsNull)
             return
         }
+        const from = this.param[key]
 
         switch (key) {
             case "uniqueIds": {
@@ -499,17 +613,18 @@ class Virtual {
                 break
             }
             case "keepsBehaviour": {
-                const validValues = Object.values(KEEPS_BEHAVIOUR)
-                if (typeof value === "string" && validValues.includes(value)) {
-                    this.param[key] = value
-                } else {
-                    this.logError('updateParam()', logMsgs.paramInvalidVal, key, value,
-                        'should use one of these:', validValues.join(', ')
-                    )
-                }
+                if (typeof value === "string") this.setKeepsBehaviour(value)
                 break
             }
-            case "updateAverageSize": {
+            case "pageModeOffset": {
+                if (typeof value === "number") this.setPageModeOffset(value, 'updateParam')
+                break
+            }
+            case "keeps": {
+                if (typeof value === "number") this.setKeeps(value)
+                break
+            }
+            case "autoAutoUpdateAverageSize": {
                 if (typeof value === "boolean") {
                     this.param[key] = value
                 } else {
@@ -519,8 +634,6 @@ class Virtual {
                 }
                 break
             }
-            case "pageModeOffset":
-            case "keeps":
             case "estimateSize":
             case "buffer":
             case "fillSizeExtra":
@@ -533,11 +646,7 @@ class Virtual {
                     )
                     break
                 }
-                if (key === "pageModeOffset") {
-                    this.setPageModeOffset(value, 'updateParam')
-                } else {
-                    this.param[key] = Math.max(value, 0)
-                }
+                this.param[key] = Math.max(value, 0)
                 break
             }
             default: {
@@ -545,6 +654,7 @@ class Virtual {
                 break
             }
         }
+        logInfo && console.info('info: updateParam()', {key, from, to: value, params: {...this.param}})
     }
 
     getBuffer(minBuffer = LEADING_BUFFER) {
@@ -565,12 +675,38 @@ class Virtual {
         return Math.max(value, minBuffer)
     }
 
+    setKeeps(value = defaults.keeps) {
+        if (!this.param) return
+        this.param.keeps = Math.max(value, MIN_KEEPS)
+        this.setKeepsCalculated(value)
+        this.checkRange(this.range.start, this.range.end)
+    }
+
     /**
      * @returns {number} param.keeps value
      */
     getKeeps() {
         return Math.max(this.param?.keeps ?? defaults.keeps, MIN_KEEPS)
     }
+
+    /** @param {KEEPS_BEHAVIOUR} value */
+    setKeepsBehaviour(value) {
+        if (!this.param) return
+
+        const validValues = Object.values(KEEPS_BEHAVIOUR)
+        if (typeof value === "string" && validValues.includes(value)) {
+            if (value === this.param.keepsBehaviour) return
+            this.param.keepsBehaviour = value
+            this.firstRangeAvgCalculated = false
+            this.checkRange(this.range.start, this.range.end)
+        } else {
+            this.logError('updateParam()', logMsgs.paramInvalidVal, 'keepsBehaviour', value,
+                'should use one of these:', validValues.join(', ')
+            )
+        }
+    }
+
+
 
     /**
      * @returns {number} calculated keeps value based on current keepsBehaviour calculation
@@ -587,7 +723,7 @@ class Virtual {
      *  @param {number} value
      */
     setKeepsCalculated(value) {
-        this.keepsCalculated = value | 1
+        if (value > MIN_KEEPS) this.keepsCalculated = value
     }
 
     /** save each size map by id
@@ -625,7 +761,7 @@ class Virtual {
      * @param {boolean} force force to calculate average size even if the range is not full
      */
 
-    calcAverageSize(force = false) {
+    calcAverageSize(force = false, updateRange) {
         if (this.calcType === CALC_TYPE.FIXED) {
             return this.fixedSizeValue
         }
@@ -641,13 +777,16 @@ class Virtual {
             let totalSize = 0
             let i = sizes.length
             while (i--) totalSize += sizes[i]
+
             this.averageSize = Math.round(totalSize / sizes.length) || 0
+            const diff =  oldAverageSize - this.averageSize
             if (oldAverageSize !== this.averageSize) {
-                if (!force) {
-                    console.warn('averageSize changed', oldAverageSize - this.averageSize)
-                    // this.param?.scrollTo(this.getScrollPosByIndex(this.range.start))
+                if (!force) { // calcAverageSizeOnce not finished
+                    logInfo && console.info('info: calcAverageSize() changed', diff)
+                    updateRange && this.updateRange(this.range.start, this.range.end)
                 }
             }
+            this.lastIndexOffset.calcIndex = 0
             this.lastAverage.start = this.range.start
             this.lastAverage.end = this.range.end
             return this.averageSize
@@ -661,9 +800,9 @@ class Virtual {
         // calculate the average size only in the first range
         if (this.calcType !== CALC_TYPE.FIXED && this.firstRangeAvgCalculated !== true) {
             // console.log('calcAverageSizeOnce')
-            if (this.sizes.size < Math.min(this.getKeepsCalculated(), this.getLength())) {
+            if (this.sizes.size <= Math.min(this.getKeepsCalculated(), this.getLength())) {
                 this.calcAverageSize(true)
-                // console.log('calcAverageSizeOnce DONE', this.averageSize)
+                logInfo && console.info('info: calcAverageSizeOnce() DONE', this.averageSize)
             } else {
                 this.firstRangeAvgCalculated = true
             }
@@ -675,25 +814,34 @@ class Virtual {
      * in some special situation (e.g. length change) we need to update in a row
      * try going to render next range by a leading buffer according to current direction
     */
-    handleDataSourcesChange() {
+    handleDataSourcesChange(log = 'n/a') {
         let start = this.range.start
+        let where = 'center'
 
         if (this.isFront()) {
             // start = start - LEADING_BUFFER
             start = start - this.getBufferCalculated()
+            where = 'front'
         } else if (this.isBehind()) {
             // start = start + LEADING_BUFFER
             start = start + this.getBufferCalculated()
+            where = 'behind'
         }
 
         // start = Math.max(start, 0)
         start = Math.min(Math.max(start, 0), this.getLastIndex())
 
-        console.log("handleDataSourcesChange", start, this.isFront())
+        logInfo && console.log("info: handleDataSourcesChange()", log, {start, where})
 
         this.dataChanges += 1
 
         this.updateRange(this.range.start, this.getEndByStart(start))
+        requestAnimationFrame(() => {
+            this.handleFront()
+            this.handleBehind()
+            this.handleScroll(this.scrollPos, this.clientSize, this.scrollSize, true)
+        })
+
     }
 
     /**
@@ -730,7 +878,7 @@ class Virtual {
 
     // ----------- public method end -----------
 
-    /**
+    /** #handleScroll, setPageModeOffset
      * @param {boolean} viewportChanged
      * @param {string} [_log] debug log
      * @returns
@@ -742,15 +890,20 @@ class Virtual {
         // @efficiency
         // should not change range if start doesn't exceed overs
         if (!viewportChanged && (
+            // @modified
+            //  if (overs > this.range.start) {
             overs > this.range.start || (overs === 0 && this.range.start === 0)
         )) {
-            logEfficiency && console.warn("perf: handleFront should not change range if start doesn't exceed overs")
+            logEfficiency === 2 && console.warn("perf: handleFront should not change range if start doesn't exceed overs", {
+                _log, overs, ...this.range, param: {...this.param}, size: this.getLength()
+
+            })
             return
         }
         // console.error('handleFront', overs, viewportChanged, _log, overs)
 
         // move up start by a buffer length, and make sure its safety
-        const start = Math.max(overs - this.getBufferCalculated(), 0)
+        const start = Math.max(overs - this.getBufferCalculated() / 2, 0)
         this.checkRange(start, this.getEndByStart(start), viewportChanged)
     }
 
@@ -765,11 +918,11 @@ class Virtual {
         const overs = this.getScrollOvers()
         // @efficiency
         // range should not change if scroll overs within buffer
-        if (overs < this.range.start + this.getBufferCalculated() && !viewportChanged) {
-            logEfficiency && console.warn('perf: handleBehind: range should not change if scroll overs within buffer')
+        // if (overs < this.range.start + this.getBufferCalculated() && !viewportChanged) {
+        if (overs < this.range.start + this.getBufferCalculated() / 2 && !viewportChanged) {
+            logEfficiency === 2 && console.warn('perf: handleBehind: range should not change if scroll overs within buffer')
             return
         }
-        // console.error('handleBehind', overs, viewportChanged, _log)
 
         this.checkRange(overs, this.getEndByStart(overs), viewportChanged)
     }
@@ -857,7 +1010,7 @@ class Virtual {
      */
     getSizeByIndex(index) {
         if (!this.param) return 0
-        return this.sizes.get(this.param.uniqueIds[index])
+        return this.sizes.get(this.param.uniqueIds[index]) || this.getEstimateSize()
     }
 
     /** is fixed size type */
@@ -880,10 +1033,10 @@ class Virtual {
      * in some conditions range is broke, we need correct it and then decide whether need update to next range
      * @param {number} start
      * @param {number} end
-     * @param {boolean} viewportChanged
+     * @param {boolean} force
      * @returns {boolean} whether need update to next range
     */
-    checkRange(start, end, viewportChanged = false) {
+    checkRange(start, end, force = false) {
         if (!this.param) return false
 
         const keeps = this.getKeepsCalculated()
@@ -898,10 +1051,10 @@ class Virtual {
             start = end - keeps + 1
         }
 
-        // if (this.range.start !== start) {
-        //     this.updateRange(start, end)
-        // }
-        if (this.range.start !== start || this.range.end !== end || viewportChanged) {
+        if (start >= end) {
+            console.error("start should less than end", start, end)
+        }
+        if (this.range.start !== start || this.range.end !== end || force) {
             this.updateRange(start, end)
             return true
         }
@@ -915,8 +1068,8 @@ class Virtual {
     calcRangeSize(start, end, withNoBuffer = false) {
         let rangeSize = 0
         if (withNoBuffer) {
-            start = Math.max(0, start + this.getBufferCalculated())
-            end = Math.max(start + 1, Math.min(this.getLastIndex(), end - this.getBufferCalculated()))
+            start = Math.max(0, start + this.getBufferCalculated() / 2)
+            end = Math.max(start + 1, Math.min(this.getLastIndex(), end - this.getBufferCalculated() / 2))
         }
 
         for (let index = start; index <= end; index++) {
@@ -925,6 +1078,7 @@ class Virtual {
                 rangeSize += size
             }
         }
+
         return rangeSize
     }
 
@@ -948,6 +1102,55 @@ class Virtual {
         return true
     }
 
+    getLargestItemSize() {
+        const values = Array.from(this.sizes.values())
+        return values.length ? Math.max.apply(null, values) : 0
+    }
+
+
+    getDesiredFillSize() {
+        if (!this.param) return 1280
+        const largestItemSize = this.getLargestItemSize()
+        const extra = Math.max(
+            this.getEstimateSize() * 2, this.param.fillSizeExtra, largestItemSize * 2
+        )
+        const viewport = this.clientSize + extra
+        const desiredFillSize = Math.min(viewport, this.param.fillMaxSize)
+        return desiredFillSize
+    }
+
+    /**
+     * check whether need render more or fewer items
+     * @param {{
+     *  range: TypeRange,
+     *  param: TypeParam,
+     *  rangeSize: number,
+     *  desiredFillSize: number,
+     *  lastChanged: TypeObjChangedResult[],
+     * }} param0
+     */
+
+    rerenderNeeded({range, param, rangeSize, desiredFillSize, lastChanged}) {
+        if (!this.param) return false
+        const noMoreItems = this.getLastIndex() <= range.end
+        if (noMoreItems) {
+            // no more items
+            logEfficiency && console.warn('pref: checkRendered() no more items')
+        } else if (this.clientSize === 0) {
+            logEfficiency && console.warn('pref: checkRendered() clientSize === 0')
+        } else if (rangeSize === 0) {
+            logEfficiency && console.warn('pref: checkRendered() rangeSize === 0')
+        } else if (rangeSize < desiredFillSize) {
+            return true
+        } else {
+            logInfo && console.log('range bigger than viewport', {
+                desiredFillSize, rangeSize, lastChanged, range, param,
+                keepsCalculated: this.getKeepsCalculated()
+            })
+        }
+        return false
+    }
+
     /**
      * check whether need render more items to fill the viewport according to the current keepsBehaviour
     */
@@ -956,94 +1159,50 @@ class Virtual {
         if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AS_IS) {
             return
         }
-        const log = false
-
         const range = { ...this.range }
         const param = { ...this.param }
+        const desiredFillSize = this.getDesiredFillSize()
+
         /**
          * @type {boolean} reset - true when the viewport has shrunk since the last render cycle
          */
         const reset = this.clientSize < this.last.clientSize && this.param.fillMaxSize > this.clientSize
-        const values = Array.from(this.sizes.values())
-        const largestItemSize = values.length ? Math.max.apply(null, values) : 0
 
         const keeps = reset ? this.getKeeps() : this.getKeepsCalculated()
 
         if (reset) {
             // this.setKeepsCalculated(keeps)
             // this.checkRange(start, this.getEndByStart(start), true)
-            console.warn('reset keeps', keeps)
+            logInfo && console.info('info: checkRendered() - reset keeps', keeps)
             return
         }
-        const buffer = this.getBufferCalculated()
-        const extra = Math.max(this.getEstimateSize(), this.param.fillSizeExtra, largestItemSize) + 1
-        const desiredFillSize = Math.min(this.clientSize + extra, this.param.fillMaxSize)
-        const displayedItems = range.end - range.start + 1
-        const noMoreItems = this.getLastIndex() <= range.end
-        const rangeSize = this.calcRangeSize(range.start, range.end, true)
-        const dataChanged = this.last.dataChanges !== this.dataChanges
+
+        const rangeSize = this.calcRangeSize(range.start, range.end)
 
         const lastChanged = this.getLastChanged(param, range, rangeSize)
 
-
-        console.log('checkRendered', {
-            lastChanged,
-            'this.getEstimateSize()': this.getEstimateSize(),
-            buffer,
-            reset,
-            clientSize: this.clientSize,
-            extra,
-            last: this.last,
-            largestItemSize,
-            displayedItems,
-            noMoreItems,
-            rangeSize,
-            dataChanged,
-            desiredFillSize,
-            keeps,
-            range,
-            param,
-            'getFrontSize': this.getFrontSize()
-        })
-
         if (lastChanged.length ===  0) {
             // @efficiency
-            logEfficiency && console.warn('perf: [disabled] rangeSize === this.last.rangeSize', rangeSize, this.last.rangeSize)
-            // not very well, if the data is changed, the rangeSize will not change, but the items will be changed
+            logEfficiency && console.warn('perf: checkRendered() lastChanged.length === 0')
             return
         }
 
         this.setLastChanged(param, range, rangeSize)
 
-        if (noMoreItems) {
-            // no more items
-            logEfficiency && console.warn('pref: no more items')
-        } else if (this.clientSize === 0) {
-            logEfficiency && console.warn('pref: clientSize === 0')
-        } else if (
-            rangeSize && rangeSize < desiredFillSize
-        ) {
+        if (this.rerenderNeeded({range, param, rangeSize, desiredFillSize, lastChanged})) {
             if (this.isFixedType()) {
                 this.fixedSizeValue
                 // const diff = desiredFillSize - rangeSize
-                console.log('FIXED SIZE')
                 // this.updateParam('keeps', this.getKeepsCalculated() + 1)
                 // TODO: calc the exact keeps to fill the viewport by one render
             }
             this.setKeepsCalculated(this.getKeepsCalculated() + 1)
-
-
-            console.log("range smaller than viewport", {
-                'this.clientSize': this.clientSize,
-                rangeSize,
-                keeps,
-                range,
-                param
-            })
-
             this.checkRange(range.start, this.getEndByStart(range.start))
-        } else {
-            log && console.log('range bigger than viewport', this.getKeepsCalculated())
+
+            logInfo && console.log("info: checkRendered() range smaller than viewport", {
+                desiredFillSize, rangeSize, lastChanged, range, param,
+                keepsCalculated: this.getKeepsCalculated()
+            })
         }
     }
 
@@ -1051,14 +1210,15 @@ class Virtual {
      * @param {TypeParam} param
      * @param {TypeRange} range
      * @param {number} rangeSize
+     * @returns {TypeObjChangedResult[]}
      */
     getLastChanged(param, range, rangeSize) {
-        const prevParam = this.last.param || {...defaults, uniqueIds: []}
+        const lastParam = this.last.param || {...defaults, uniqueIds: []}
         return [
             ...getObjChangesByKeys(this.last.range, range,  this.eqRangeKeys, 'range.'),
             ...getObjChangesByKeys(this.last, this,  this.eqSelfKeys, 'this.'),
             ...getObjChangesByKeys(this.last, {rangeSize},  ['rangeSize']),
-            ...getObjChangesByKeys(prevParam, param,  this.eqParamKeys, 'param.')
+            ...getObjChangesByKeys(lastParam, param,  this.eqParamKeys, 'param.')
         ]
     }
 
@@ -1071,6 +1231,10 @@ class Virtual {
         this.last.range = {...range}
         this.last.param = {...param}
         this.last.rangeSize = rangeSize
+        for (const key of this.eqSelfKeys) {
+            // @ts-ignore TODO: fix types
+            this.last[key] = this[key]
+        }
     }
 
     /**
@@ -1081,6 +1245,10 @@ class Virtual {
         // ? + this.getBufferCalculated()
         const theoryEnd = start + this.getKeepsCalculated() - 1
         const truelyEnd = Math.min(theoryEnd, this.getLastIndex())
+        // console.log('getEndByStart', {start, theoryEnd, truelyEnd,
+        //     'lastIndex': this.getLastIndex(),
+        //     'keeps': this.getKeepsCalculated()
+        // })
         return truelyEnd
     }
 
@@ -1104,13 +1272,30 @@ class Virtual {
 
         // if it's all calculated, return the exactly offset
         // TODO: refactor this: check all elements in the range are calculated or not
+        // may be the average size changed since last render
         if (this.lastIndexOffset.calcIndex === lastIndex) {
+            // logInfo && console.info('info: getPadBehind() lastIndexOffset.calcIndex === lastIndex')
             return this.getIndexOffset(lastIndex) - this.getIndexOffset(end)
         } else {
             // if not, use a estimated value
             // console.warn('Estimated return', this.lastIndexOffset.calcIndex,  lastIndex)
             return (lastIndex - end) * this.getEstimateSize()
         }
+    }
+    /**
+     * @param {number} start scroll position by index
+     * @returns {TypeScrollPos} return start index scroll position
+     */
+    getScrollPosByIndex(start) {
+        return (start < 1 ? 0 : this.getIndexOffset(start)) + this.getFrontSize()
+    }
+
+    /**
+     * @param {number} px scroll position in px
+     * @returns {TypeScrollPos} return start index scroll position
+     */
+    getScrollPosByPx(px) {
+        return px + this.getFrontSize()
     }
 
     /**
@@ -1136,7 +1321,14 @@ class Virtual {
         const newPos = this.getScrollPosByPx(px)
         this.param?.scrollTo(newPos)
     }
-    refreshScrollPos() {
+    refreshScrollPos(force = false) {
+        if (!force && this.scrollPosRaw <= 0) {
+            // @efficiency
+            logEfficiency && console.warn(
+                'perf: refreshScrollPos() prevent scroll when scrollPosRaw <= 0', this.scrollPosRaw
+            )
+            return
+        }
         this.scrollToPx(this.scrollPosRaw)
     }
 }
