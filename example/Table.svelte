@@ -71,12 +71,14 @@
 <div class="overflow-buttons">
     <button on:click={() => list.scrollTo(0)}>To top</button>
     <button on:click={() => list.scrollToBottom()}>To bottom</button>
-    <button on:click={() => addItems(true, 10)}>Add 10 items</button>
+    <button on:click={() => addItems(true, 10)}>Prepend 10</button>
+    <button on:click={() => addItems(false, 10)}>Append 10 </button>
 </div>
 
 <div class="vs">
     <VirtualScroll
         bind:this={list}
+        debug={true}
         data={items}
         key="uniqueKey"
         keeps={keeps}

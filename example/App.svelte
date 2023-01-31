@@ -2,7 +2,7 @@
     import SimpleList from "./SimpleList.svelte"
     import SimpleListStore from "./SimpleListStore.svelte"
     import InfiniteList from "./InfiniteList.svelte"
-    import {KEEPS_BEHAVIOUR} from "../src/virtual"
+    import {KEEPS_BEHAVIOUR, MIN_KEEPS, defaults} from "../src/virtual"
     // import PageList from "./PageList.svelte"
     import Table from "./Table.svelte"
     import ChangeableData from "./ChangeableData.svelte"
@@ -47,7 +47,7 @@
 
     const parseKeepsParam = () => {
         const keeps = parseInt(getParam("keeps"), 10)
-        if (keeps && !isNaN(keeps) && isFinite(keeps) && keeps  > 0) {
+        if (keeps && !isNaN(keeps) && isFinite(keeps) && keeps >= MIN_KEEPS) {
             return keeps
         }
         return keepsDefault
@@ -69,7 +69,7 @@
     let horizontalMode = getParam("horizontal") === "1"
     let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") === "1"
-    let keeps =  parseKeepsParam()
+    let keeps =  parseKeepsParam() || defaults.keeps
     let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AS_IS
 
 
@@ -142,7 +142,7 @@
                         <input type="checkbox" bind:checked={fixSize} /> fixSize
                     </label>
                     <label>
-                        keeps <input style="width: 50px" maxlength="3" min="1" max="200" type="number" bind:value={keeps} />
+                        keeps <input style="width: 50px" maxlength="3" min="{MIN_KEEPS}" max="200" type="number" bind:value={keeps} />
                     </label>
                     <label>
                         behavior
@@ -287,7 +287,9 @@
         top: 5px;
         position: sticky;
         text-align: right;
+        padding: 0 10px;
         box-sizing: border-box;
+        pointer-events: none;
     }
     :global(.sticky-header.page-mode .overflow-buttons) {
         top: auto;
@@ -296,9 +298,8 @@
         padding: 0 1rem;
         position: fixed;
         width: 100%;
-        pointer-events: none;
     }
-    :global(.sticky-header.page-mode .overflow-buttons button) {
+    :global(.overflow-buttons button) {
         pointer-events: auto;
     }
 

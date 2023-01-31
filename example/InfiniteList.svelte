@@ -83,6 +83,7 @@
 <div class="vs">
     <VirtualScroll
         bind:this={list}
+        debug={true}
         data={items}
         key="uniqueKey"
         keeps={keeps}

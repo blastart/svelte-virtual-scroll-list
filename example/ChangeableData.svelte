@@ -46,6 +46,7 @@
 <div class="vs">
     <VirtualScroll
         bind:this={list}
+        debug={true}
         data={items}
         keeps={keeps}
         keepsBehaviour={behavior}
