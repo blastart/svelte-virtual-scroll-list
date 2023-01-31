@@ -56,14 +56,7 @@ export const browser = typeof window !== "undefined"
  * @typedef {false | 0 | "" | null | undefined | void} TypeFalsy
  */
 
-// /**
-//  * contains the calculated range of the items to render
-//  * @typedef {Object.<string, any>} TypeRange
-//  * @property {number} start
-//  * @property {number} end
-//  * @property {number} padFront
-//  * @property {number} padBehind
-//  */
+
 
 /**
  * contains the calculated range of the items to render
@@ -759,9 +752,10 @@ class Virtual {
     /**
      * calculates the average size of all items that have been rendered.
      * @param {boolean} force force to calculate average size even if the range is not full
+     * @param {boolean} updateRange update range if average size is changed
      */
 
-    calcAverageSize(force = false, updateRange) {
+    calcAverageSize(force = false, updateRange = false) {
         if (this.calcType === CALC_TYPE.FIXED) {
             return this.fixedSizeValue
         }
