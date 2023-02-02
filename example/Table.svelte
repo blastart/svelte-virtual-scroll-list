@@ -56,13 +56,12 @@
         }
     ]
 
-    addItems(true, 1000)
 
     $: {
         void fixSize
         items = []
 
-        if (list) list.clearSizes()
+        if (list) list.resetSizes()
         addItems(true, 1000)
     }
 

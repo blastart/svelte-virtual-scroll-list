@@ -39,7 +39,7 @@
         void fixSize
         void horizontalMode
         items = []
-        if (list) list.clearSizes()
+        if (list) list.resetSizes()
         addItems(100)
     }
 </script>

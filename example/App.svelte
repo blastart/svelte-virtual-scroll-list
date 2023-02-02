@@ -24,8 +24,8 @@
     }
 
     /**
-     * @param {string} name
-     * @param {string} value
+     * @param {string} name URL.searchParams name
+     * @param {string} value URL.searchParams value
      */
     const setParam = (name, value) => {
         const paramValue = encodeURIComponent(value)
@@ -110,6 +110,7 @@
 </script>
 
 <div class="page">
+
     <header>
         <h1>@blastart/svelte-virtual-scroll-list example
         </h1>

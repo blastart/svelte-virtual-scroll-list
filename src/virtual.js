@@ -1,3 +1,5 @@
+import {getObjChangesByKeys, margeDefinedProps, debounceFn} from './lib.js'
+// import { rifFn} from './lib.js'
 
 
 /**
@@ -52,10 +54,6 @@ export const defaultNameSpace = 'virtual-scroll'
 
 export const browser = typeof window !== "undefined"
 
-/**
- * @typedef {false | 0 | "" | null | undefined | void} TypeFalsy
- */
-
 
 
 /**
@@ -75,8 +73,6 @@ export const browser = typeof window !== "undefined"
  * Scroll to position call to be applied on the current scollable container.
  * @typedef {(position: TypeScrollPos) => void} TypeScrollToFn
  */
-
-
 
 /**
  * items to render in addition to the keeps. recommend for a third of keeps
@@ -118,7 +114,6 @@ export const browser = typeof window !== "undefined"
  * update the average size of items after each scroll
  * @typedef {boolean} TypeAutoUpdateAverageSize - autoAutoUpdateAverageSize
  */
-
 
 /**
  * Required parameters for the virtual class
@@ -183,108 +178,6 @@ export const browser = typeof window !== "undefined"
 
 
 /**
- * @param {Array<string | TypeFalsy>} classList
- * @returns {string}
- * @example
- * joinClassNames('a', false, 'b', 'c', null) // 'a b c'
- */
-export const joinClassNames = (...classList) => classList
-    .filter((c) => typeof c === 'string' && c.trim().length > 0)
-    .map((c) => c && c.trim())
-    .join(' ')
-
-/**
- * @typedef {{key: string, from: any, to: any}} TypeObjChangedResult
-
-/**
- * getObjChangesByKeys
- * @param {Object.<string, any>} aObj - "from" object to compare
- * @param {Object.<string, any>} bObj - "to" object to compare
- * @param {string[]} keys - object keys to compare
- * @param {string} [keyPrefix] - prefix to be added to the keys in the result.
- * @returns {TypeObjChangedResult[]}
-*/
-const getObjChangesByKeys = (aObj, bObj, keys = [], keyPrefix = '') => {
-    /** @type {TypeObjChangedResult[]} */
-    const changedKeys = []
-
-    return keys.reduce((acc, key) => {
-        if (aObj[key] !== bObj[key]) {
-            acc.push({ key: keyPrefix + key, from: aObj[key], to: bObj[key] })
-        }
-        return acc
-    }, changedKeys)
-}
-
-/** @param {Object.<string, any>} obj */
-const definedProps = obj => Object.fromEntries(
-    Object.entries(obj).filter(([_k, v]) => v !== undefined)
-)
-
-/**
- * @param {(...args: unknown[]) => unknown} func - function to wrap in requestIdleCallback
- * @param {number} rifFallbackDelay - fallback delay in ms
- * @returns {(...args: unknown[]) => unknown} returns a function that wraps the original fn in requestIdleCallback
- */
-export function rifFn(func, rifFallbackDelay = 40) {
-    /** @type { ReturnType<typeof requestIdleCallback> | null } */
-    let idleTimeout
-    /** @type { ReturnType<typeof setTimeout> | null } */
-    let fallbackTimeout
-
-    let fallbackLastCall = 0
-
-    const rifSupport = typeof requestIdleCallback === 'function'
-
-    /**
-    * @param {...*} args
-    * @this {unknown}
-    */
-    return function(...args) {
-        const timerFn = () => {
-            func.apply(this, args)
-            idleTimeout = fallbackTimeout = null
-            if (!rifSupport) fallbackLastCall = Date.now()
-        }
-
-        if (rifSupport) {
-            idleTimeout && cancelIdleCallback(idleTimeout)
-            idleTimeout = requestIdleCallback(timerFn)
-        } else { // safari does not support requestIdleCallback yet
-            const now = Date.now()
-            fallbackTimeout && clearTimeout(fallbackTimeout)
-
-            if (now - fallbackLastCall > rifFallbackDelay) {
-                timerFn()
-            }
-
-            fallbackTimeout = setTimeout(timerFn, rifFallbackDelay)
-        }
-    }
-}
-
-/**
- * @param {(...args: unknown[]) => unknown} func - function to wrap in debounce
- * @param {number} wait - debounce delay in ms
- * @returns {(...args: unknown[]) => unknown} returns a function that wraps the original fn in debounce
- */
-const debounceFn = function(func, wait = 100) {
-    /** @type { ReturnType<typeof setTimeout> | null } */
-    let timeout = null
-    /**
-    * @param {...*} args
-    * @this {unknown}
-    */
-    return function(...args) {
-        timeout && clearTimeout(timeout)
-        timeout = setTimeout(() => {
-            timeout = null
-            func.apply(this, args)
-        }, wait)
-    }
-}
-
-/**
  * direction values
  * @enum {string}
  * @readonly
@@ -307,6 +200,7 @@ const CALC_TYPE = {
     DYNAMIC: "DYNAMIC"
 }
 
+const BUFFER_TESTRATIO = 1
 
 const LEADING_BUFFER = 1
 /** minimum number of items to render */
@@ -316,12 +210,19 @@ export const MIN_KEEPS = 3
  * behaviour options to calculate the number of items to render
  * @readonly
  * @enum {string}
- * @property {string} AS_IS - uses the value set in params.
+ * @property {string} AS_IS         - uses the value set in params.
+ *
  * @property {string} AUTO_INCREASE - increments the value set in param.keeps until the rendered
  *                                    range becomes larger than the viewport.
- * @property {string} AUTO_ADJUST - Increments/decrements the value set in params according
- *                                  to the size of the viewport.
- * @property {string} ACCURATE - Renders an exact number of items to fill the viewport in each
+ *
+ * @property {string} AUTO_ADJUST   - Increments/decrements the value set in params according
+ *                                    to the size of the viewport. This may cause more rendering
+ *                                    cycles, especially for non-fixed size elements, but it always
+ *                                    renders a sufficient number of elements to fill the viewport
+ *
+ * @property {string} ACCURATE      - Renders an exact number of items to fill the viewport in each
+ *                                    range changes. This is the most accurate option but it casuses
+ *                                    more re-renders than the other options.
 */
 export const KEEPS_BEHAVIOUR = {
     AS_IS: "as-is",
@@ -329,8 +230,6 @@ export const KEEPS_BEHAVIOUR = {
     AUTO_ADJUST: "auto-adjust",
     ACCURATE: "accurate"
 }
-
-
 
 const logMsgs = {
     paramIsNull: 'param is not yet initialized',
@@ -464,7 +363,7 @@ class Virtual {
             scrollTo: () => this.logError("scrollTo function is not defined in param"),
             uniqueIds: []
             // TODO: validate params using updateParam()
-        }, (definedProps(param || {})))
+        }, (margeDefinedProps(param || {})))
         this.callUpdate = callUpdate
         this.bufferCalculated = this.param?.buffer || defaults.buffer
         // size data
@@ -498,14 +397,17 @@ class Virtual {
     }
 
     // rifUpdateCalculations = rifFn(/** @type {(this: Virtual) => void} */ function() {
-    //     this.calcAverageSize() // recalculate average size when scrolling to front
+    //     if (this.param?.autoAutoUpdateAverageSize) {
+    //         this.calcAverageSize(false, true) // recalculate average size when scrolling to front
+    //         console.error("recalculate average size when scrolling to front")
+    //     }
     // })
 
     debounceUpdateCalculations = debounceFn(/** @type {(this: Virtual) => void} */ function() {
         if (this.param?.autoAutoUpdateAverageSize) {
             this.calcAverageSize(false, true) // recalculate average size when scrolling to front
         }
-    }, 1000)
+    }, 2000)
 
     reset() {
         if (this.param && this.callUpdate) {
@@ -554,14 +456,10 @@ class Virtual {
             return
         }
 
-        // if uniqueIds change, find out deleted id and remove from size map
-        this.sizes.forEach((v, key) => {
-            if (Array.isArray(uniqueIds) && !uniqueIds.includes(key)) {
-                this.sizes.delete(key)
-            }
-        })
         if (Array.isArray(uniqueIds)) {
             this.param.uniqueIds = uniqueIds
+            this.cleanSizes()
+
         } else {
             this.logError('setUniqueIds()', logMsgs.paramInvalidVal, uniqueIds)
         }
@@ -742,11 +640,24 @@ class Virtual {
         this.calcAverageSizeOnce()
     }
 
-    clearSizes() {
+    resetSizes() {
         this.sizes.clear()
         this.firstRangeAvgCalculated = false
         this.fixedSizeValue = 0
         this.calcType = CALC_TYPE.INIT
+    }
+
+    /** if uniqueIds change, find out deleted id and remove from size map */
+    cleanSizes() {
+        const uniqueIds = this.param?.uniqueIds
+
+        if (!Array.isArray(uniqueIds) || uniqueIds.length === 0) return
+
+        this.sizes.forEach((v, key) => {
+            if (Array.isArray(uniqueIds) && !uniqueIds.includes(key)) {
+                this.sizes.delete(key)
+            }
+        })
     }
 
     /**
@@ -897,7 +808,7 @@ class Virtual {
         // console.error('handleFront', overs, viewportChanged, _log, overs)
 
         // move up start by a buffer length, and make sure its safety
-        const start = Math.max(overs - this.getBufferCalculated() / 2, 0)
+        const start = Math.max(overs - this.getBufferCalculated() * BUFFER_TESTRATIO, 0)
         this.checkRange(start, this.getEndByStart(start), viewportChanged)
     }
 
@@ -913,7 +824,7 @@ class Virtual {
         // @efficiency
         // range should not change if scroll overs within buffer
         // if (overs < this.range.start + this.getBufferCalculated() && !viewportChanged) {
-        if (overs < this.range.start + this.getBufferCalculated() / 2 && !viewportChanged) {
+        if (overs < this.range.start + this.getBufferCalculated() * BUFFER_TESTRATIO && !viewportChanged) {
             logEfficiency === 2 && console.warn('perf: handleBehind: range should not change if scroll overs within buffer')
             return
         }
@@ -1062,8 +973,8 @@ class Virtual {
     calcRangeSize(start, end, withNoBuffer = false) {
         let rangeSize = 0
         if (withNoBuffer) {
-            start = Math.max(0, start + this.getBufferCalculated() / 2)
-            end = Math.max(start + 1, Math.min(this.getLastIndex(), end - this.getBufferCalculated() / 2))
+            start = Math.max(0, start + this.getBufferCalculated() * 0.5)
+            end = Math.max(start + 1, Math.min(this.getLastIndex(), end - this.getBufferCalculated() * 0.5))
         }
 
         for (let index = start; index <= end; index++) {
@@ -1117,14 +1028,13 @@ class Virtual {
      * check whether need render more or fewer items
      * @param {{
      *  range: TypeRange,
-     *  param: TypeParam,
      *  rangeSize: number,
      *  desiredFillSize: number,
-     *  lastChanged: TypeObjChangedResult[],
      * }} param0
+     * @param {unknown} logData
      */
 
-    rerenderNeeded({range, param, rangeSize, desiredFillSize, lastChanged}) {
+    rerenderNeeded({range, rangeSize, desiredFillSize}, logData) {
         if (!this.param) return false
         const noMoreItems = this.getLastIndex() <= range.end
         if (noMoreItems) {
@@ -1137,10 +1047,7 @@ class Virtual {
         } else if (rangeSize < desiredFillSize) {
             return true
         } else {
-            logInfo && console.log('range bigger than viewport', {
-                desiredFillSize, rangeSize, lastChanged, range, param,
-                keepsCalculated: this.getKeepsCalculated()
-            })
+            logInfo && console.log('range bigger than viewport', logData)
         }
         return false
     }
@@ -1156,34 +1063,37 @@ class Virtual {
         const range = { ...this.range }
         const param = { ...this.param }
         const desiredFillSize = this.getDesiredFillSize()
+        const rangeSize = this.calcRangeSize(range.start, range.end, true)
+        const lastChanged = this.getLastChanged(param, range, rangeSize)
+        const logData = logInfo && {
+            desiredFillSize, rangeSize, lastChanged, range, param,
+            keepsCalculated: this.getKeepsCalculated()
+        }
 
+        // [...document.querySelectorAll('.virtual-scroll__item')].reduce((a, c) => a + c.clientHeight, 0);
         /**
          * @type {boolean} reset - true when the viewport has shrunk since the last render cycle
          */
         const reset = this.clientSize < this.last.clientSize && this.param.fillMaxSize > this.clientSize
-
         const keeps = reset ? this.getKeeps() : this.getKeepsCalculated()
 
         if (reset) {
             // this.setKeepsCalculated(keeps)
             // this.checkRange(start, this.getEndByStart(start), true)
             logInfo && console.info('info: checkRendered() - reset keeps', keeps)
-            return
+            // return
         }
 
-        const rangeSize = this.calcRangeSize(range.start, range.end)
-
-        const lastChanged = this.getLastChanged(param, range, rangeSize)
 
         if (lastChanged.length ===  0) {
             // @efficiency
-            logEfficiency && console.warn('perf: checkRendered() lastChanged.length === 0')
+            logEfficiency && console.warn('perf: checkRendered() lastChanged.length === 0', logData)
             return
         }
 
         this.setLastChanged(param, range, rangeSize)
 
-        if (this.rerenderNeeded({range, param, rangeSize, desiredFillSize, lastChanged})) {
+        if (this.rerenderNeeded({range, rangeSize, desiredFillSize}, logData)) {
             if (this.isFixedType()) {
                 this.fixedSizeValue
                 // const diff = desiredFillSize - rangeSize
@@ -1193,10 +1103,7 @@ class Virtual {
             this.setKeepsCalculated(this.getKeepsCalculated() + 1)
             this.checkRange(range.start, this.getEndByStart(range.start))
 
-            logInfo && console.log("info: checkRendered() range smaller than viewport", {
-                desiredFillSize, rangeSize, lastChanged, range, param,
-                keepsCalculated: this.getKeepsCalculated()
-            })
+            logInfo && console.log("info: checkRendered() range smaller than viewport", logData)
         }
     }
 
@@ -1204,7 +1111,7 @@ class Virtual {
      * @param {TypeParam} param
      * @param {TypeRange} range
      * @param {number} rangeSize
-     * @returns {TypeObjChangedResult[]}
+     * @returns {import('./lib').TypeObjChangedResult[]}
      */
     getLastChanged(param, range, rangeSize) {
         const lastParam = this.last.param || {...defaults, uniqueIds: []}

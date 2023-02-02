@@ -65,7 +65,7 @@
         void horizontalMode
         items.set([])
 
-        if (list) list.clearSizes()
+        if (list) list.resetSizes()
 
         addItems(false, 5)
 

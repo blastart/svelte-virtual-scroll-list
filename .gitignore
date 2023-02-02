@@ -9,3 +9,5 @@ lib/
 yarn.lock
 
 .vscode/
+
+out/

@@ -1,5 +1,7 @@
 <script>
-    import Virtual, {joinClassNames, defaultNameSpace, rifFn, browser, setDebug} from "./virtual"
+    import Virtual, { defaultNameSpace, browser, setDebug} from "./virtual"
+    import { joinClassNames, rifFn } from './lib'
+
     import Item from "./Item.svelte"
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
 
@@ -167,8 +169,8 @@
         return virtual.sizes.size
     }
 
-    export function clearSizes() {
-        return virtual.clearSizes()
+    export function resetSizes() {
+        return virtual.resetSizes()
     }
 
     /**
@@ -247,8 +249,7 @@
     })()
 
     // window.updatePageModeFront = updatePageModeFront
-    // window.triggerScroll = triggerScroll
-    window.virtual = virtual
+    // window.virtual = virtual
 
     /**
      * @type {(position: number) => void} - scroll to position by px
@@ -373,15 +374,8 @@
     /**
      * @type {TypeStyleCallback} returns the style of list elem.
      */
-    export function listStyle({tableView, isHorizontal}, range) {
+    export function listStyle({tableView, isHorizontal}) {
         const cssProps = []
-        if (!tableView) {
-            const pStyle = isHorizontal
-                ? `0px ${range?.padBehind ?? 0}px 0px ${range?.padFront ?? 0}px`
-                : `${range?.padFront ?? 0}px 0px ${range?.padBehind ?? 0}px`
-            cssProps.push(`padding: ${pStyle}`)
-        }
-
         if (isHorizontal && !tableView) {
             cssProps.push('display: flex', 'flex-direction: row', 'flex-wrap: nowrap')
         }
@@ -557,7 +551,6 @@
             slotHeaderSize, slotFooterSize
         })
         let state = getCurrent()
-
         return () => {
             const prev = state
             state = getCurrent()
@@ -710,9 +703,10 @@
             this={tableView ? 'tbody' : propsListDstructed.tagName || 'div'}
             class={joinClassNames(`${nameSpace}__list`, propsListDstructed.className)}
         >
-            {#if tableView && range}
-                <tr
-                    class="{nameSpace}__table-spacer"
+            {#if range}
+                <svelte:element
+                    class="{nameSpace}__spacer-top"
+                    this={tableView ? 'tr' : 'div'}
                     style="border: 0 none; height: {range.padFront}px"
                 />
             {/if}
@@ -738,9 +732,10 @@
                 </Item>
             {/each}
 
-            {#if tableView && range}
-                <tr
-                    class="{nameSpace}__table-spacer"
+            {#if range}
+                <svelte:element
+                    class="{nameSpace}__spacer-bottom"
+                    this={tableView ? 'tr' : 'div'}
                     style="border: 0 none; padding: 0; height: {range.padBehind}px"
                 />
             {/if}

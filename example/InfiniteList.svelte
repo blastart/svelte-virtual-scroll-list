@@ -70,7 +70,7 @@
     $: {
         void fixSize
         void horizontalMode
-        if (list) list.clearSizes()
+        if (list) list.resetSizes()
         items = itemsFactory(70)
     }
 

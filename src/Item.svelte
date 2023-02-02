@@ -1,6 +1,7 @@
 <script>
     import {afterUpdate, createEventDispatcher, onDestroy, onMount} from "svelte"
-    import {joinClassNames, defaultNameSpace} from "./virtual"
+    import {defaultNameSpace} from "./virtual"
+    import {joinClassNames} from "./lib"
 
     /**
      * @type {string} [tagName] - tagName of the item element
