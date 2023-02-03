@@ -8,6 +8,8 @@
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
+    /** @type {import('../src/index').TypeDebugVirtualScroll} */
+    export let debug
 
     const getItemId = createSequenceGenerator()
     const getNotificationId = createSequenceGenerator()
@@ -75,7 +77,7 @@
 <div class="vs">
     <VirtualScroll
         bind:this={list}
-        debug={true}
+        debug={debug}
         data={$items}
         key="uniqueKey"
         keeps={keeps}
@@ -89,7 +91,11 @@
         <div slot="header">
             This is a header
         </div>
-        <TestItem horizontalMode={horizontalMode} {...data}/>
+        <TestItem horizontalMode={horizontalMode} {...data}>
+            <var>key: {data.uniqueKey}</var>
+            <var>set: {data.size}</var>
+            <var>calc: {list?.getSize(data.uniqueKey) || 'n/a'}</var>
+        </TestItem>
         <div slot="footer">
             This is a footer
         </div>

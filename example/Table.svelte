@@ -5,6 +5,8 @@
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
+    /** @type {import('../src/index').TypeDebugVirtualScroll} */
+    export let debug
 
     const getItemId = createSequenceGenerator()
 
@@ -37,12 +39,12 @@
         {
             prop: 'uniqueKey',
             label: 'id',
-            width: '50px'
+            width: '60px'
         },
         {
             prop: 'height',
             label: 'Height',
-            width: '70px'
+            width: '100px'
         },
         {
             prop: 'word',
@@ -77,7 +79,7 @@
 <div class="vs">
     <VirtualScroll
         bind:this={list}
-        debug={true}
+        debug={debug}
         data={items}
         key="uniqueKey"
         keeps={keeps}
@@ -89,12 +91,19 @@
     >
         <tr slot="header">
             {#each cells as cell}
-                <th style:width={cell.width}>{cell.label}</th>
+                <th style:width={cell.width}><div class="inner">{cell.label}</div></th>
             {/each}
         </tr>
 
-        {#each cells as cell}
-            <TestTableCell height="{data.height}px" width={cell.width}>{data[cell.prop]}</TestTableCell>
+        {#each cells as cell (cell.prop)}
+            <TestTableCell height="{data.height}px" width={cell.width}>
+                {#if cell.prop === "height"}
+                    set: {data[cell.prop]} <br />
+                    calc: {list?.getSize(data.uniqueKey) || 'n/a'}
+                {:else}
+                    {data[cell.prop]}
+                {/if}
+            </TestTableCell>
         {/each}
 
         <tr slot="footer">
@@ -115,19 +124,17 @@
     }
 
 
-
-
-    /* .vs :global(table) {
-        border: 0 none;
+    .vs :global(th .inner) {
+        padding: 10px 5px;
     }
-    */
     .vs :global(td), .vs :global(th) {
         border: 1px solid #888;
         border-top: 0 none;
         color: black;
-        padding: 10px 5px;
         text-align: left;
         background-color: #eee;
+        padding: 0;
+        margin: 0;
     }
     .vs :global(thead) {
         /* It's a bit tricky,
@@ -147,15 +154,5 @@
         box-shadow: -1px 0px 0 #888;
     }
 
-    /*
-    .vs :global(tbody tr) {
-        animation: fadeInOpacity 200ms ease-in-out forwards;
-    }
 
-
-    @keyframes fadeInOpacity {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    */
 </style>

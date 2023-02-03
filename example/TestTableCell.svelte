@@ -5,6 +5,15 @@
     export let tagName = "td"
 </script>
 
-<svelte:element class="cell" this={tagName} style:height={height} style:width="{width}">
-    <slot/>
+<svelte:element class="cell" this={tagName}>
+    <div class="cell-inner" style:min-height={height} style:min-width="{width}">
+        <slot/>
+    </div>
 </svelte:element>
+
+<style>
+    .cell-inner {
+        padding: 10px 5px;
+        box-sizing: border-box;
+    }
+</style>

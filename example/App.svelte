@@ -3,9 +3,11 @@
     import SimpleListStore from "./SimpleListStore.svelte"
     import InfiniteList from "./InfiniteList.svelte"
     import {KEEPS_BEHAVIOUR, MIN_KEEPS, defaults} from "../src/virtual"
+    import {getParam, setParam, isNumInRange, parseJSON, useClickOutside} from "./apps.lib"
     // import PageList from "./PageList.svelte"
     import Table from "./Table.svelte"
     import ChangeableData from "./ChangeableData.svelte"
+    let showOtherOptions = false
     let navPushState = true
 
     let pages = [
@@ -16,23 +18,6 @@
         {name: "SimpleListStore", component: SimpleListStore},
         {name: "Infinite list", component: InfiniteList, stickyHeader: true}
     ]
-
-    /** @param {string} name */
-    const getParam = name => {
-        const url = new URL(window.location.href)
-        return decodeURIComponent(url.searchParams.get(name) || "")
-    }
-
-    /**
-     * @param {string} name URL.searchParams name
-     * @param {string} value URL.searchParams value
-     */
-    const setParam = (name, value) => {
-        const paramValue = encodeURIComponent(value)
-        const url = new URL(window.location.href)
-        url.searchParams.set(name, paramValue)
-        window.history.pushState({}, "", url)
-    }
 
     /** @param {string} name */
     const getPageByName = name => pages.find(page => page.name === name) || pages[0]
@@ -61,8 +46,27 @@
         if (horizontalMode) params.set("horizontal", "1")
         if (keeps !== keepsDefault) params.set("keeps", keeps.toString())
         if (behavior !== "auto") params.set("behavior", behavior)
+        params.set("debug", JSON.stringify(debug))
         return '?' + params.toString()
     }
+
+    /**
+     * @param {import('../src/virtual').TypeDebugOptions & {debugKeeps: boolean}} debug
+    */
+    function validateDebug(debug) {
+        const {efficiency = 0, info = 0, debugKeeps = false} = (
+            typeof debug === "object" && debug ? debug : {}
+        )
+        return {
+            efficiency: isNumInRange(efficiency, 0, 2) ? efficiency : 0,
+            info: isNumInRange(info, 0, 2) ? info : 0,
+            debugKeeps: !!debugKeeps,
+            logErrors: true
+        }
+    }
+    const hideOtherOptions = () => showOtherOptions = false
+
+
     const behaviors = Object.values(KEEPS_BEHAVIOUR)
 
     let currentPage = getPageByName(getParam("page"))
@@ -71,6 +75,7 @@
     let pageMode = getParam("pageMode") === "1"
     let keeps =  parseKeepsParam() || defaults.keeps
     let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AS_IS
+    let debug = validateDebug(parseJSON(getParam("debug")))
 
 
     let testOffsetChange = false
@@ -92,6 +97,8 @@
         setParam("pageMode", pageMode ? "1" : "0")
         setParam("keeps", keeps + "")
         setParam("behavior", behavior)
+        setParam("debug", JSON.stringify(debug))
+        debug = validateDebug(debug)
         document.documentElement.classList.toggle(
             "horizontal-mode", horizontalMode && !currentPage.horizontalModeNotSupported
         )
@@ -116,31 +123,34 @@
         </h1>
         <div class="page-selector-container">
             <div class="page-selector-inner">
-                {#each pages as page}
+                <nav>
+                    {#each pages as page}
+                    <a
+                        class="page-selector"
+                        on:click={onNavigate.bind(null, page)}
+                        href={createUrlSearchParams(page.name)}
+                        class:active={currentPage.name === page.name}
+                    >{page.name}</a>
+                    {/each}
+                </nav>
 
-                <a
-                    class="page-selector"
-                    on:click={onNavigate.bind(null, page)}
-                    href={createUrlSearchParams(page.name)}
-                    class:active={currentPage.name === page.name}
-                >{page.name}</a>
-
-                {/each}
                 <div class="view-modes">
-                    <label>
-                        <input type="checkbox" bind:checked={pageMode} /> pageMode
-                    </label>
-                    {#if pageMode}
-                        <label class="wobble" title="for testing page offset changes">
-                            <input type="checkbox" bind:checked={testOffsetChange} />
-                            {#if testOffsetChange}Stop wobbling{:else}wobble{/if}
+                    <div style:max-width="100px" style="background: #333; margin-right: 5px">
+                        <label>
+                            <input type="checkbox" bind:checked={pageMode} /> pageMode
                         </label>
-                    {/if}
+                        {#if pageMode}
+                            <label class="wobble" title="for testing page offset changes">
+                                <input type="checkbox" bind:checked={testOffsetChange} />
+                                {#if testOffsetChange}Stop wobbling{:else}wobble{/if}
+                            </label>
+                        {/if}
+                    </div>
                     <label>
                         <input type="checkbox" bind:checked={horizontalMode} /> horizontal
                     </label>
                     <label>
-                        <input type="checkbox" bind:checked={fixSize} /> fixSize
+                        <input  type="checkbox" bind:checked={fixSize} /> fixSize
                     </label>
                     <label>
                         keeps <input style="width: 50px" maxlength="3" min="{MIN_KEEPS}" max="200" type="number" bind:value={keeps} />
@@ -153,10 +163,10 @@
                             {/each}
                         </select>
                     </label>
-
                     <label style="opacity: 0.75; margin-left: auto;" title="Use history.pushState for navigation">
                         <input type="checkbox" bind:checked={navPushState} /> pushState
                     </label>
+
                     <a class="source" href="https://github.com/v1ack/svelte-virtual-scroll-list/tree/master/example">Source</a>
                 </div>
             </div>
@@ -168,11 +178,32 @@
             {:else}
             {horizontalMode}
             {/if}
+            <div class="other-ops" use:useClickOutside on:click_outside={hideOtherOptions}>
+                <button on:click={() => { showOtherOptions = !showOtherOptions }} class="other-ops__show-others">
+                    {#if showOtherOptions}Hide{:else}Show{/if} debug options
+                </button>
+                {#if showOtherOptions}
+                <div class="other-ops__content">
+                    <label>
+                        debug.logErrors <input disabled type="checkbox" bind:checked={debug.logErrors} />
+                    </label>
+                    <label title="0 - no log | 1 - log  major info | 2 - log  major & minor info">
+                        debug.info <input bind:value={debug.info} type=number min=0 max=2>
+                    </label>
+                    <label title="0 - no log | 1 - log  major efficient improvements | 2 - log  major & minor improvements">
+                        debug.efficiency <input bind:value={debug.efficiency} type=number min=0 max=2>
+                    </label>
+                    <label>
+                        debug.debugKeeps <input type="checkbox" bind:checked={debug.debugKeeps} />
+                    </label>
+                </div>
+                {/if}
+            </div>
         </div>
     </header>
     <hr class="h-line" />
     <main>
-        <svelte:component behavior={behavior} keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
+        <svelte:component debug={debug} behavior={behavior} keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
     </main>
 </div>
 
@@ -182,11 +213,13 @@
         color: #888;
         margin-bottom: 1.25em;
     }
+
     label {
         display: inline-block;
         margin-right: 1em;
         font-size: 14px;
         color: var(--primary-color);
+        white-space: nowrap;
     }
     label:hover {
         color: var(--hihglight-color);
@@ -194,6 +227,43 @@
 
     label input {
         margin-bottom: 0;
+    }
+
+    .other-ops {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin-left: auto;
+        overflow: visible;
+    }
+    .other-ops .other-ops__content {
+        position: absolute;
+        top: 30px;
+        right: 0;
+        font-size: 14px;
+        padding: 1rem;
+        box-sizing: border-box;
+        color: var(--primary-color);
+        background: #444;
+        z-index: 3;
+        border: none;
+        cursor: pointer;
+        margin: 0;
+        margin-left: 1em;
+    }
+    .other-ops .other-ops__content label {
+        margin: 0.5rem 0;
+    }
+    .other-ops .other-ops__content label input {
+        margin-left: 0.5rem;
+    }
+
+    .other-ops > button {
+        background: none;
+        color: #fff;
+        border: 0 none;
+        text-decoration: underline;
     }
 
     .page {
@@ -278,6 +348,25 @@
         margin-left: auto;
         margin-right: auto;
     }
+    .page-state-container {
+        display: flex;
+    }
+
+
+    .page-selector-inner {
+        overflow-x: auto;
+        flex-direction: column;
+        display: flex;
+    }
+    .page-selector-inner nav {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .page-selector-inner nav a {
+        white-space: nowrap;
+    }
+
     .source {
         float: right;
     }
@@ -303,10 +392,20 @@
     :global(.overflow-buttons button) {
         pointer-events: auto;
     }
-
     :global(.virtual-scroll--view-list .virtual-scroll__item ) {
-        padding: 4px 0;
+        padding: 4px;
+        box-sizing: border-box;
     }
+    :global(.virtual-scroll__item var) {
+        margin: 0 5px;
+    }
+
+    :global(.horizontal-mode .virtual-scroll__item var) {
+        margin: 0 5px;
+        display: block;
+    }
+
+
     :global(.test-offset-change) .wobble {
         position: fixed;
         top: 0;
@@ -324,6 +423,12 @@
     }
     :global(.test-offset-change.horizontal-mode) {
         animation: wobblePaddingLeft 2000ms infinite linear;
+    }
+
+    @media (max-width: 900px) {
+        h1 {
+            font-size: 3vw;
+        }
     }
 
     :root {

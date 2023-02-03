@@ -39,13 +39,11 @@
 
 <div
     class={horizontalMode ? "hoz" : "ver"}
-    style:height={height}
-    style:width={width}
-    style:min-width={minWidth}
-    style:min-height={minHeight}
+    style:min-width={minWidth || width}
+    style:min-height={ height || minHeight}
+    data-uniqueKey={uniqueKey}
 >
-    key: {uniqueKey} |
-    {horizontalMode ? width : height}
+    <slot/>
 </div>
 
 <style>
@@ -57,7 +55,11 @@
         border-radius: 20px;
         text-align: center;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
+    }
+    :global(.horizontal-mode) div {
+        flex-direction: column;
     }
 </style>

@@ -6,6 +6,8 @@
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
+    /** @type {import('../src/index').TypeDebugVirtualScroll} */
+    export let debug
 
     /** @type {number} */
     export let keeps
@@ -83,7 +85,7 @@
 <div class="vs">
     <VirtualScroll
         bind:this={list}
-        debug={true}
+        debug={debug}
         data={items}
         key="uniqueKey"
         keeps={keeps}
@@ -100,12 +102,17 @@
                 loading...
             {/if}
         </div>
-        <TestItem horizontalMode={horizontalMode} {...data}/>
+        <TestItem horizontalMode={horizontalMode} {...data}>
+            <var>key: {data.uniqueKey}</var>
+            <var>set: {data.size}</var>
+            <var>calc: {list?.getSize(data.uniqueKey) || 'n/a'}</var>
+        </TestItem>
         <div slot="footer">
             {#if loading && loadingDirection === "bottom"}
                 loading...
             {:else}
-                scroll down to load more items
+
+                scroll {horizontalMode ? 'right' : 'down'} to load more items
             {/if}
         </div>
     </VirtualScroll>
