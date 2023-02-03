@@ -46,6 +46,24 @@ export const margeDefinedProps = obj => Object.fromEntries(
 )
 
 
+/**
+ * chunnk array like lodash.chunk
+ * @param {unknown[]} arr
+ * @param {number} size
+ * @returns {[...unknown][]}
+ *
+*/
+export const arrayChunk = (arr = [], size = 2) => {
+    const chunked_arr = []
+    let index = 0
+    while (index < arr.length) {
+        chunked_arr.push(arr.slice(index, Math.min(index + size, arr.length)))
+        index += size
+    }
+    return chunked_arr
+
+}
+
 
 /**
  * @param {(...args: unknown[]) => unknown} func - function to wrap in debounce

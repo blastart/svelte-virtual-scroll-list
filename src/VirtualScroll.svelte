@@ -1,17 +1,14 @@
 <script>
-    import Virtual, { defaultNameSpace, browser, setDebug} from "./virtual"
+    import Virtual, { defaultNameSpace, browser, setDebug, getDebug} from "./virtual"
     import { joinClassNames, rifFn } from './lib'
 
     import Item from "./Item.svelte"
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
 
-    /**
-     * @type {boolean & {
-     *  efficiency?: import('./virtual').TypeLogEfficiency,
-     *  info?: import('./virtual').TypeLogInfo,
-     *  logErrors?: boolean,
-     * }} debugging options
-    */
+
+    /** @typedef {import('./virtual').TypeDebugOptions & { debugKeeps?: boolean }} TypeDebugVirtualScroll */
+
+    /** @type {TypeDebugVirtualScroll} */
     export let debug = false
 
     /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
@@ -38,11 +35,11 @@
     /** @type {import('./virtual').TypeFillMaxSize | undefined}  */
     export let fillMaxSize = undefined
 
-    /** @type {import('./virtual').TypeFillSizeExtra | undefined}  */
-    export let fillSizeExtra = undefined
+    /** @type {import('./virtual').TypeFillSizeMultiplier | undefined}  */
+    export let fillSizeMultiplier = undefined
 
     /** @type {import('./virtual').TypeAutoUpdateAverageSize | undefined}  */
-    export let autoAutoUpdateAverageSize = undefined
+    export let autoAutoUpdateAverageSize = true
 
 
     /** @type {number| undefined} Estimate size of each item, needs for smooth scrollbar */
@@ -113,16 +110,17 @@
 
     // TODO: reveal new properties from Virtual.param
     const virtual = new Virtual({
-        keeps: keeps || 30,
+        keeps: keeps || undefined,
         keepsBehaviour,
         estimateSize,
         fillMaxSize,
-        fillSizeExtra,
+        fillSizeMultiplier,
         autoAutoUpdateAverageSize,
         slotHeaderSize,
         slotFooterSize,
-        buffer: buffer || Math.round(keeps || 30 / 3) || 10, // recommend for a third of keeps
+        buffer: buffer || Math.round(keeps || 30 / 3) || undefined, // recommend for a third of keeps
         uniqueIds: getUniqueIdFromDataSources(),
+
         scrollTo: (pos) => scrollTo(pos)
     }, function(rng, afterRender) {
         // callUpdate
@@ -130,8 +128,8 @@
 
         displayItems = data.slice(rng.start, rng.end + 1)
         if (displayItems.length === 0) {
-            console.error(
-                "displayItems", displayItems, {
+            getDebug().any && console.log(
+                "callUpdate: no item to display", displayItems, {
                     start: rng.start,
                     end: rng.end,
                     irlEnd: rng.end + 1,
@@ -139,7 +137,7 @@
                 })
         }
         tick().then(() => afterRender(getClientSize()))
-    }, typeof debug && typeof debug.logErrors === "boolean" ? debug.logErrors  : true)
+    })
 
     /** @type {HTMLElement} for scrollable tables **/
     let wrapper
@@ -147,7 +145,7 @@
     /** @type {HTMLElement} */
     let root
 
-    const refFooterSlot = { current: null }
+    // const refFooterSlot = { current: null }
 
     const dispatch = createEventDispatcher()
 
@@ -174,18 +172,43 @@
     }
 
     /**
+     * @param {keyof HTMLElement} key - key of HTMLElement
+     */
+    function getScrollableKeyValue(key) {
+        if (!browser) return 0
+        if (!key) return undefined
+
+        /** @type {unknown} */
+        let value
+
+        if (pageMode) {
+            value = document.documentElement[key] || document.body[key]
+        } else if (tableView) {
+            value =  wrapper ? wrapper[key] : 0
+        } else {
+            value = root ? root[key] : 0
+        }
+
+        return value
+    }
+
+
+    /**
      * @type {() => number}
      */
     export function getScrollPos() {
         if (!browser) return 0
-        const scrolltDirectionKey = getScrolltDirectionKey()
-        if (pageMode) {
-            return document.documentElement[scrolltDirectionKey] || document.body[scrolltDirectionKey]
-        } else if (tableView) {
-            return wrapper ? Math.ceil(wrapper[scrolltDirectionKey]) : 0
-        } else {
-            return root ? Math.ceil(root[scrolltDirectionKey]) : 0
-        }
+        // const scrolltDirectionKey = getScrolltDirectionKey()
+        // if (pageMode) {
+        //     return document.documentElement[scrolltDirectionKey] || document.body[scrolltDirectionKey]
+        // } else if (tableView) {
+        //     return wrapper ? Math.ceil(wrapper[scrolltDirectionKey]) : 0
+        // } else {
+        //     return root ? Math.ceil(root[scrolltDirectionKey]) : 0
+        // }
+        const pos = getScrollableKeyValue(getScrolltDirectionKey())
+
+        return typeof pos === "number" ? pos : 0
     }
 
     /**
@@ -193,15 +216,18 @@
      */
     export function getClientSize() {
         if (!browser) return 0
-
         const key = isHorizontal ? "clientWidth" : "clientHeight"
-        if (pageMode) {
-            return document.documentElement[key] || document.body[key]
-        } else if (tableView) {
-            return wrapper ? Math.ceil(wrapper[key]) : 0
-        } else {
-            return root ? Math.ceil(root[key]) : 0
-        }
+        const size = getScrollableKeyValue(key)
+
+        // if (pageMode) {
+        //     return document.documentElement[key] || document.body[key]
+        // } else if (tableView) {
+        //     return wrapper ? Math.ceil(wrapper[key]) : 0
+        // } else {
+        //     return root ? Math.ceil(root[key]) : 0
+        // }
+
+        return typeof size === "number" ? size : 0
     }
 
     /**
@@ -211,13 +237,17 @@
         if (!browser) return 0
 
         const key = isHorizontal ? "scrollWidth" : "scrollHeight"
-        if (pageMode) {
-            return document.documentElement[key] || document.body[key]
-        } else if (tableView) {
-            return wrapper ? Math.ceil(wrapper[key]) : 0
-        } else {
-            return root ? Math.ceil(root[key]) : 0
-        }
+        const size = getScrollableKeyValue(key)
+
+        // if (pageMode) {
+        //     return document.documentElement[key] || document.body[key]
+        // } else if (tableView) {
+        //     return wrapper ? Math.ceil(wrapper[key]) : 0
+        // } else {
+        //     return root ? Math.ceil(root[key]) : 0
+        // }
+
+        return typeof size === "number" ? size : 0
     }
 
 
@@ -239,7 +269,8 @@
                     ? (rect.left + defaultView.pageXOffset)
                     : (rect.top + defaultView.pageYOffset)
 
-                offset = Math.round(offsetRaw * 1000) / 1000
+                // offset = Math.round(offsetRaw * 1000) / 1000
+                offset = offsetRaw
             }
 
             if (offset === lastOffset) return
@@ -288,21 +319,20 @@
      * @retrun {() => void}
      */
     export function scrollToBottom(_e, _retries = data.length) {
-        if (refFooterSlot.current) {
-            const offsetHelperOffset = refFooterSlot.current[isHorizontal ? "offsetLeft" : "offsetTop"]
-            scrollTo(offsetHelperOffset)
+        const scrollEnd = getScrollSize()
+        scrollTo(scrollEnd)
+        // getDebug().any && console.log("scrollToBottom", footerOffset, scrollEnd, getScrollPos() + getClientSize())
 
-            // TODO: fix this hack
-            // check if it's really scrolled to the bottom
-            // maybe list doesn't render and calculate to last range,
-            // so we need retry in next event loop until it really at bottom
-            if (_retries > 0) {
-                requestAnimationFrame(() => {
-                    if (getScrollPos() + getClientSize() + 1 < getScrollSize()) {
-                        scrollToBottom(null, _retries - 1)
-                    }
-                })
-            }
+        // TODO: fix this hack
+        // check if it's really scrolled to the bottom
+        // maybe list doesn't render and calculate to last range,
+        // so we need retry in next event loop until it really at bottom
+        if (_retries > 0) {
+            requestAnimationFrame(() => {
+                if (getScrollPos() + getClientSize() + 1 < getScrollSize()) {
+                    scrollToBottom(null, _retries - 1)
+                }
+            })
         }
     }
 
@@ -500,12 +530,12 @@
      */
     function onScroll(event) {
         const scrollPos = getScrollPos()
-        const clientSize = getClientSize()
+        const clientSize =  getClientSize()
         const scrollSize = getScrollSize()
 
         // iOS scroll-spring-back behavior will make direction mistake
         if (scrollPos < 0 || (scrollPos + clientSize > scrollSize + 1) || !scrollSize) {
-            // console.warn('IOS GESTURE')
+            // getDebug().any && console.warn('IOS GESTURE')
             return
         }
 
@@ -522,10 +552,9 @@
      */
     function emitEvent(offset, clientSize, scrollSize, event) {
         dispatch("scroll", {event, range: virtual.getRange()})
-
-        if (virtual.isFront() && !!data.length && (offset - topThreshold <= 0)) {
+        if (virtual.isFront() && data.length > 0 && Math.ceil(offset - topThreshold) <= 0) {
             dispatch("top")
-        } else if (virtual.isBehind() && (offset + clientSize + bottomThreshold >= scrollSize)) {
+        } else if (virtual.isBehind() && Math.ceil(offset + clientSize + bottomThreshold) >= scrollSize) {
             dispatch("bottom")
         }
     }
@@ -547,7 +576,7 @@
         /** @return {Object<string, unknown>} */
         const getCurrent = () => ({
             isHorizontal, tableView, pageMode, keepsBehaviour, data, keeps, buffer,
-            estimateSize, fillMaxSize, fillSizeExtra, autoAutoUpdateAverageSize,
+            estimateSize, fillMaxSize, fillSizeMultiplier, autoAutoUpdateAverageSize,
             slotHeaderSize, slotFooterSize
         })
         let state = getCurrent()
@@ -577,7 +606,7 @@
         'buffer',
         'estimateSize',
         'fillMaxSize',
-        'fillSizeExtra',
+        'fillSizeMultiplier',
         'autoAutoUpdateAverageSize',
         'slotHeaderSize',
         'slotFooterSize'
@@ -599,29 +628,30 @@
             }
         })
 
-        handleDataSourcesChange(
-            changed.keys.some((prop) => propsTriggersReset.includes(prop)), // hard reset
-            changed.keys.join(', ')
-        )
+        const hardReset = changed.keys.some((prop) => propsTriggersReset.includes(prop))
 
-        console.info('params changed', changed, data.length)
+
+        handleDataSourcesChange(hardReset, changed.keys.join(', '))
+
+        getDebug().any && console.info('params changed', changed, data.length)
 
 
         if (changed.keys.includes('pageMode') || changed.keys.includes('isHorizontal')) {
             tick().then(() => {
-                console.warn('refreshScrollPos')
+                getDebug().any && console.info('refreshScrollPos')
                 virtual.refreshScrollPos()
             })
         }
     }
 
 
+
     $: scrollTo(offset)
     $: scrollToIndex(start)
+    $: setDebug(debug)
     $: {
-        setDebug(debug)
-        if (debug) {
-            void displayItems.length
+        if (debug?.debugKeeps) {
+            void displayItems
             keepsCalculated = virtual.getKeepsCalculated()
         }
     }
@@ -639,7 +669,7 @@
         void keepsBehaviour
         void estimateSize
         void fillMaxSize
-        void fillSizeExtra
+        void fillSizeMultiplier
         void autoAutoUpdateAverageSize
         void slotHeaderSize
         void slotFooterSize
@@ -647,6 +677,10 @@
         if (isHorizontal && tableView) {
             virtual.logError("Horizontal mode doesn't support table view")
             isHorizontal = false
+        } else if (isHorizontal && autoAutoUpdateAverageSize) {
+            virtual.logError("autoAutoUpdateAverageSize not supported in horizontal mode")
+            autoAutoUpdateAverageSize = false
+            handlePropsChange()
         } else {
             handlePropsChange()
         }
@@ -661,7 +695,7 @@
     on:scroll={onWrapperScroll}
     style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
 >
-    {#if (debug)}
+    {#if (debug?.debugKeeps)}
         <div class="{defaultNameSpace}__debug" style="z-index: 20; position: fixed; pointer-events: none; top: 2rem; right: 2rem; padding: 0.5rem; background: #222; color: #ccc; font-size: 24px;">
             keeps: {keepsCalculated}
         </div>
@@ -707,7 +741,7 @@
                 <svelte:element
                     class="{nameSpace}__spacer-top"
                     this={tableView ? 'tr' : 'div'}
-                    style="border: 0 none; height: {range.padFront}px"
+                    style={`border: 0 none; padding: 0; ${isHorizontal ? 'width' : 'height'}: ${range.padFront}px`}
                 />
             {/if}
 
@@ -736,7 +770,7 @@
                 <svelte:element
                     class="{nameSpace}__spacer-bottom"
                     this={tableView ? 'tr' : 'div'}
-                    style="border: 0 none; padding: 0; height: {range.padBehind}px"
+                    style={`border: 0 none; padding: 0; ${isHorizontal ? 'width' : 'height'}: ${range.padBehind}px`}
                 />
             {/if}
         </svelte:element>
@@ -748,10 +782,10 @@
             {...propsFooterSlot}
             on:resize={onItemResized}
             type="slot"
-            ref={refFooterSlot}
             uniqueKey="footer"
         >
             <slot name="footer"/>
         </Item>
+
     </svelte:element>
 </div>

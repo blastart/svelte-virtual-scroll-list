@@ -1,4 +1,4 @@
-import {getObjChangesByKeys, margeDefinedProps, debounceFn} from './lib.js'
+import {getObjChangesByKeys, margeDefinedProps, debounceFn, arrayChunk} from './lib.js'
 // import { rifFn} from './lib.js'
 
 
@@ -10,7 +10,7 @@ import {getObjChangesByKeys, margeDefinedProps, debounceFn} from './lib.js'
 */
 
 /** @type {TypeLogEfficiency} - logEfficiency */
-let logEfficiency = 1
+let logEfficiency = 0
 
 
 /**
@@ -21,34 +21,54 @@ let logEfficiency = 1
 */
 
 /** @type {TypeLogInfo} - logEfficiency */
-let logInfo = 1
+let logInfo = 0
+
+
+/** @type {boolean} - logEfficiency */
+let logErrors = true
 
 
 /**
- * @param {boolean | {
+ * @typedef {boolean | {
  *  efficiency?: TypeLogEfficiency,
  *  info?: TypeLogInfo,
- *  logErrors?: boolean,
- * }}  options
+ *  logErrors?: boolean
+ * }} TypeDebugOptions
+*/
+
+/**
+ * @param {TypeDebugOptions}  options
 */
 
 export const setDebug = (options) => {
     if (typeof options === 'boolean') {
-        logEfficiency = 1
-        logInfo = 1
+        logEfficiency = options ? 1 : 0
+        logInfo = options ? 1 : 0
+        // logErrors = options // log error enabled by default
+        // to disable log errors use setDebug({logErrors: false})
         return
     }
     if (typeof options.efficiency === 'number') {
-        if (options.efficiency < 0 || options.efficiency > 2) {
+        if (options.efficiency >= 0 || options.efficiency <= 2) {
             logEfficiency = options.efficiency
         }
     }
     if (typeof options.info === 'number') {
-        if (options.info < 0 || options.info > 2) {
+        if (options.info >= 0 || options.info <= 2) {
             logInfo = options.info
         }
     }
+    if (typeof options.logErrors === 'boolean') {
+        logErrors = options.logErrors
+    }
+
 }
+
+export const getDebug = () => ({
+    logEfficiency,
+    logInfo,
+    any: !!(logEfficiency || logInfo)
+})
 
 export const defaultNameSpace = 'virtual-scroll'
 
@@ -95,8 +115,8 @@ export const browser = typeof window !== "undefined"
  * @typedef {number} TypeFillMaxSize -
  */
 /**
- * extra size by px to fill the viewport with items. This value is added to viewport size
- * @typedef {number} TypeFillSizeExtra - fillSizeExtra
+ * Viewport multiplier. According to keepsBehavior, it increases the size of the viewport to be filled with elements in order to ensure smooth scrolling even when scrolling fast. The value of "keeps" increases in proportion to the viewport.
+ * @typedef {number} TypeFillSizeMultiplier - fillSizeMultiplier
  */
 /**
  * size of the header slot
@@ -131,7 +151,7 @@ export const browser = typeof window !== "undefined"
  * estimateSize: TypeEstimateSize,
  * keepsBehaviour: TypeKeepsBehaviour,
  * fillMaxSize: TypeFillMaxSize,
- * fillSizeExtra: TypeFillSizeExtra,
+ * fillSizeMultiplier: TypeFillSizeMultiplier,
  * slotHeaderSize: TypeSlotHeaderSize,
  * slotFooterSize: TypeSlotFooterSize,
  * pageModeOffset: TypePageModeOffset,
@@ -244,9 +264,9 @@ export const defaults = {
     slotHeaderSize: 0,
     slotFooterSize: 0,
     pageModeOffset: 0,
-    fillSizeExtra: 100,
+    fillSizeMultiplier: 2,
     fillMaxSize: 10000,
-    autoAutoUpdateAverageSize: true,
+    autoAutoUpdateAverageSize: false,
     estimateSize: 50,
     buffer: 10
 }
@@ -324,6 +344,10 @@ class Virtual {
         scrollPos: 0,
         rangeSize: 0
     }
+
+    /** @type {TypeScrollPos[]} helps prevent scroll loop if an element overflows */
+    _scrollPosHistory = []
+
     /** this.range[key] is compared to this.last.range[key] */
     eqRangeKeys = ["start", "end", "padFront", "padBehind"]
 
@@ -338,12 +362,11 @@ class Virtual {
     /**
      * @param {TypeParamForInit} param
      * @param {TypeCallUpdateFn} callUpdate
-     * @param {boolean} logErros log errors to console
      */
-    constructor(param, callUpdate, logErros = true) {
+    constructor(param, callUpdate) {
 
         /** @type {(...args: unknown[]) => unknown}  */
-        this.logError = logErros && browser && console?.error
+        this.logError = logErrors && browser && console?.error
             ? console.error.bind(window.console, defaultNameSpace + ':')
             : () => {}
 
@@ -399,7 +422,7 @@ class Virtual {
     // rifUpdateCalculations = rifFn(/** @type {(this: Virtual) => void} */ function() {
     //     if (this.param?.autoAutoUpdateAverageSize) {
     //         this.calcAverageSize(false, true) // recalculate average size when scrolling to front
-    //         console.error("recalculate average size when scrolling to front")
+    //         logInfo && console.error("recalculate average size when scrolling to front")
     //     }
     // })
 
@@ -407,7 +430,7 @@ class Virtual {
         if (this.param?.autoAutoUpdateAverageSize) {
             this.calcAverageSize(false, true) // recalculate average size when scrolling to front
         }
-    }, 2000)
+    }, 1000)
 
     reset() {
         if (this.param && this.callUpdate) {
@@ -482,7 +505,7 @@ class Virtual {
 
         if (newVal === this.param.pageModeOffset) return
 
-        this.param.pageModeOffset = Math.round(value)
+        this.param.pageModeOffset = newVal
         this.handleFront(false, 'setPageModeOffset ' + _log)
         // this.handleBehind(false, 'setPageModeOffset ' + _log)
     }
@@ -527,7 +550,7 @@ class Virtual {
             }
             case "estimateSize":
             case "buffer":
-            case "fillSizeExtra":
+            case "fillSizeMultiplier":
             case "fillMaxSize":
             case "slotHeaderSize":
             case "slotFooterSize":{
@@ -644,6 +667,7 @@ class Virtual {
         this.sizes.clear()
         this.firstRangeAvgCalculated = false
         this.fixedSizeValue = 0
+        this._scrollPosHistory.splice(0, this._scrollPosHistory.length)
         this.calcType = CALC_TYPE.INIT
     }
 
@@ -704,7 +728,7 @@ class Virtual {
         if (!this.param) return
         // calculate the average size only in the first range
         if (this.calcType !== CALC_TYPE.FIXED && this.firstRangeAvgCalculated !== true) {
-            // console.log('calcAverageSizeOnce')
+            // logInfo && console.log('calcAverageSizeOnce')
             if (this.sizes.size <= Math.min(this.getKeepsCalculated(), this.getLength())) {
                 this.calcAverageSize(true)
                 logInfo && console.info('info: calcAverageSizeOnce() DONE', this.averageSize)
@@ -750,6 +774,47 @@ class Virtual {
     }
 
     /**
+     * detect scroll loop
+     * @param {TypeScrollPos} scrollPos
+     * @param {TypeClientSize} clientSize
+     * @param {TypeScrollSize} scrollSize
+     * @param {boolean} [forceChange]
+    */
+    detectScrollLoop(scrollPos, clientSize, scrollSize, forceChange = false) {
+        const shLen = this._scrollPosHistory.length
+        const cyles = 6 // must be even number
+
+        if (shLen >= cyles) {
+            logInfo > 1 && console.log('info: detectScrollLoop()', this._scrollPosHistory, scrollPos)
+
+            if (
+                arrayChunk(this._scrollPosHistory, 2).every(chunk => (
+                    // all odd elements match the current position in 6 (cyles) update cycles
+                    chunk[0] === scrollPos && chunk[1] !== scrollPos
+                ))
+            ) {
+                this.logError(
+                    'detectScrollLoop()',
+                    'scroll loop detected. Some items may be overflowing beyond their set size.', {
+                        history: this._scrollPosHistory,
+                        scrollPos,
+                        clientSize,
+                        scrollSize,
+                        forceChange,
+                        last: this.last,
+                        range: {...this.range}
+                    }
+                )
+                return true
+            }
+            this._scrollPosHistory.splice(0, shLen, scrollPos)
+        }
+        this._scrollPosHistory.push(scrollPos)
+
+        return false
+    }
+
+    /**
      * calculating range on scroll
      * @param {TypeScrollPos} scrollPos
      * @param {TypeClientSize} clientSize
@@ -757,6 +822,10 @@ class Virtual {
      * @param {boolean} [forceChange]
     */
     handleScroll(scrollPos, clientSize, scrollSize, forceChange = false) {
+        if (this.detectScrollLoop(scrollPos, clientSize, scrollSize, forceChange)) {
+            return
+        }
+
         // @efficiency || scrollPos === 0  added
         this.direction = scrollPos < this.scrollPos || scrollPos === 0 ? DIRECTION_TYPE.FRONT : DIRECTION_TYPE.BEHIND
         this.scrollPos = scrollPos
@@ -805,7 +874,7 @@ class Virtual {
             })
             return
         }
-        // console.error('handleFront', overs, viewportChanged, _log, overs)
+        // logInfo && console.error('handleFront', overs, viewportChanged, _log, overs)
 
         // move up start by a buffer length, and make sure its safety
         const start = Math.max(overs - this.getBufferCalculated() * BUFFER_TESTRATIO, 0)
@@ -957,7 +1026,7 @@ class Virtual {
         }
 
         if (start >= end) {
-            console.error("start should less than end", start, end)
+            this.logError("start should less than end", start, end)
         }
         if (this.range.start !== start || this.range.end !== end || force) {
             this.updateRange(start, end)
@@ -1017,9 +1086,12 @@ class Virtual {
         if (!this.param) return 1280
         const largestItemSize = this.getLargestItemSize()
         const extra = Math.max(
-            this.getEstimateSize() * 2, this.param.fillSizeExtra, largestItemSize * 2
+            this.getEstimateSize() * 2, largestItemSize * 2
         )
-        const viewport = this.clientSize + extra
+        const viewport = Math.max(
+            this.clientSize + extra,
+            this.clientSize * this.param.fillSizeMultiplier
+        )
         const desiredFillSize = Math.min(viewport, this.param.fillMaxSize)
         return desiredFillSize
     }
@@ -1039,11 +1111,11 @@ class Virtual {
         const noMoreItems = this.getLastIndex() <= range.end
         if (noMoreItems) {
             // no more items
-            logEfficiency && console.warn('pref: checkRendered() no more items')
+            logEfficiency && console.warn('pref: checkRendered() escape: no more items')
         } else if (this.clientSize === 0) {
-            logEfficiency && console.warn('pref: checkRendered() clientSize === 0')
+            logEfficiency && console.warn('pref: checkRendered() escape: clientSize === 0')
         } else if (rangeSize === 0) {
-            logEfficiency && console.warn('pref: checkRendered() rangeSize === 0')
+            logEfficiency && console.warn('pref: checkRendered() escape: rangeSize === 0')
         } else if (rangeSize < desiredFillSize) {
             return true
         } else {
@@ -1076,6 +1148,10 @@ class Virtual {
          */
         const reset = this.clientSize < this.last.clientSize && this.param.fillMaxSize > this.clientSize
         const keeps = reset ? this.getKeeps() : this.getKeepsCalculated()
+
+        if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AUTO_ADJUST) {
+
+        }
 
         if (reset) {
             // this.setKeepsCalculated(keeps)
@@ -1146,7 +1222,7 @@ class Virtual {
         // ? + this.getBufferCalculated()
         const theoryEnd = start + this.getKeepsCalculated() - 1
         const truelyEnd = Math.min(theoryEnd, this.getLastIndex())
-        // console.log('getEndByStart', {start, theoryEnd, truelyEnd,
+        // logInfo && console.log('getEndByStart', {start, theoryEnd, truelyEnd,
         //     'lastIndex': this.getLastIndex(),
         //     'keeps': this.getKeepsCalculated()
         // })
