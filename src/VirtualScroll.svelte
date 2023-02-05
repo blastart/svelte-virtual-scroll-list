@@ -1,14 +1,12 @@
 <script>
-    import Virtual, { defaultNameSpace, browser, setDebug, getDebug} from "./virtual"
+    import Virtual, { defaultNameSpace, browser, setDebug, getDebug, defaults} from "./virtual"
     import { joinClassNames, rifFn } from './lib'
 
     import Item from "./Item.svelte"
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
 
 
-    /** @typedef {import('./virtual').TypeDebugOptions & { debugKeeps?: boolean }} TypeDebugVirtualScroll */
-
-    /** @type {TypeDebugVirtualScroll} */
+    /** @type {import('./index').TypeDebugVirtualScroll} */
     export let debug = false
 
     /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
@@ -42,7 +40,7 @@
     export let autoAutoUpdateAverageSize = true
 
 
-    /** @type {number| undefined} Estimate size of each item, needs for smooth scrollbar */
+    /** @type {import('./virtual').TypeEstimateSize | undefined } Estimate size of each item, needs for smooth scrollbar */
     export let estimateSize = undefined
 
     /** @type {boolean}  Scroll direction */
@@ -52,7 +50,7 @@
     export let start = 0
 
     /** @type {number} scroll position offset */
-    export let offset = 0
+    export let scrollPos = 0
 
     /** @type {boolean} Let virtual list using table instead of div */
     export let tableView = false
@@ -65,7 +63,6 @@
 
     /** @type {number} The threshold to emit `bottom` event, attention to multiple calls. */
     export let bottomThreshold = 0
-
 
 
     /** @type {import('./index').TypeElementProps} Props of root element */
@@ -83,9 +80,8 @@
     /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
-    export let keepsBehaviour = Virtual.KEEPS_BEHAVIOUR.AS_IS
+    export let keepsBehaviour = Virtual.KEEPS_BEHAVIOUR.AUTO_INCREASE
 
-    let keepsCalculated = keeps
 
     /** @return {('scrollLeft'|'scrollTop')} */
     const getScrolltDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
@@ -106,7 +102,20 @@
     /** @type {import('./virtual').TypeRange | null} */
     let range = null
 
-
+    /** create data to pass to each slot <slot let:slotData /> */
+    const getSlotData = () => ({
+        isFixedType: virtual.isFixedType(),
+        keepsCalculated: virtual.getKeepsCalculated(),
+        key,
+        nameSpace,
+        range,
+        debug,
+        data,
+        displayItems,
+        pageMode,
+        isHorizontal,
+        tableView
+    })
 
     // TODO: reveal new properties from Virtual.param
     const virtual = new Virtual({
@@ -127,6 +136,8 @@
         range = rng
 
         displayItems = data.slice(rng.start, rng.end + 1)
+
+
         if (displayItems.length === 0) {
             getDebug().any && console.log(
                 "callUpdate: no item to display", displayItems, {
@@ -139,16 +150,17 @@
         tick().then(() => afterRender(getClientSize()))
     })
 
+
     /** @type {HTMLElement} for scrollable tables **/
     let wrapper
 
     /** @type {HTMLElement} */
     let root
 
-    // const refFooterSlot = { current: null }
 
     const dispatch = createEventDispatcher()
 
+    /** Trigger a scroll event */
     export function triggerScroll() {
         dispatch("scroll", {
             event: new CustomEvent(defaultNameSpace + '-scroll-tirgger'),
@@ -156,9 +168,7 @@
         })
     }
 
-    /**
-     * @param {import('./index').TypeUniqueKey} id of item
-     */
+    /**  @param {import('./index').TypeUniqueKey} id of item */
     export function getSize(id) {
         return virtual.sizes.get(id)
     }
@@ -167,13 +177,12 @@
         return virtual.sizes.size
     }
 
+    /** reset calculated size values  */
     export function resetSizes() {
         return virtual.resetSizes()
     }
 
-    /**
-     * @param {keyof HTMLElement} key - key of HTMLElement
-     */
+    /** @param {keyof HTMLElement} key - key of HTMLElement */
     function getScrollableKeyValue(key) {
         if (!browser) return 0
         if (!key) return undefined
@@ -193,64 +202,36 @@
     }
 
 
-    /**
-     * @type {() => number}
-     */
+    /** @type {() => number} scrollLeft or scrollTop depending on isHorizontal */
     export function getScrollPos() {
         if (!browser) return 0
-        // const scrolltDirectionKey = getScrolltDirectionKey()
-        // if (pageMode) {
-        //     return document.documentElement[scrolltDirectionKey] || document.body[scrolltDirectionKey]
-        // } else if (tableView) {
-        //     return wrapper ? Math.ceil(wrapper[scrolltDirectionKey]) : 0
-        // } else {
-        //     return root ? Math.ceil(root[scrolltDirectionKey]) : 0
-        // }
+
         const pos = getScrollableKeyValue(getScrolltDirectionKey())
 
         return typeof pos === "number" ? pos : 0
     }
 
-    /**
-     * @type {() => number}
-     */
+
+    /** @type {() => number} clientWidth or clientHeight depending on isHorizontal */
     export function getClientSize() {
         if (!browser) return 0
         const key = isHorizontal ? "clientWidth" : "clientHeight"
         const size = getScrollableKeyValue(key)
 
-        // if (pageMode) {
-        //     return document.documentElement[key] || document.body[key]
-        // } else if (tableView) {
-        //     return wrapper ? Math.ceil(wrapper[key]) : 0
-        // } else {
-        //     return root ? Math.ceil(root[key]) : 0
-        // }
-
         return typeof size === "number" ? size : 0
     }
 
-    /**
-     * @type {() => number}
-     */
+    /** @type {() => number} scrollWidth or scrollHeight depending on isHorizontal */
     export function getScrollSize() {
         if (!browser) return 0
 
         const key = isHorizontal ? "scrollWidth" : "scrollHeight"
         const size = getScrollableKeyValue(key)
 
-        // if (pageMode) {
-        //     return document.documentElement[key] || document.body[key]
-        // } else if (tableView) {
-        //     return wrapper ? Math.ceil(wrapper[key]) : 0
-        // } else {
-        //     return root ? Math.ceil(root[key]) : 0
-        // }
-
         return typeof size === "number" ? size : 0
     }
 
-
+    /** @type {() => void} update pageModeOffset */
     export const updatePageModeFront = (function() {
         let lastOffset = 0
 
@@ -279,12 +260,7 @@
         }
     })()
 
-    // window.updatePageModeFront = updatePageModeFront
-    // window.virtual = virtual
-
-    /**
-     * @type {(position: number) => void} - scroll to position by px
-     */
+    /** @type {(position: number) => void} - scroll to position by px */
     export function scrollTo(position) {
         if (!browser) return
         const scrolltDirectionKey = getScrolltDirectionKey()
@@ -300,15 +276,19 @@
         triggerScroll()
     }
 
-    /**
-     * @type {(index: number) => void}
-     */
+    /** @param {number} pos */
+    export function scrollToRelative(pos) {
+        virtual.scrollToPx(pos)
+    }
+
+    /** @type {(index: number) => void} */
     export function scrollToIndex(index) {
         if (index >= data.length - 1) {
             scrollToBottom()
         } else {
-            const offset = virtual.getScrollPosByIndex(index)
-            scrollTo(offset)
+            // const offset = virtual.getScrollPosByIndex(index)
+            // scrollTo(offset)
+            virtual.scrollToIndex(index)
         }
     }
 
@@ -337,27 +317,16 @@
     }
 
 
-    export const tableStyle = [
-        'display: table',
-        // 'table-layout:fixed',
-        'padding: 0',
-        'border-collapse: collapse',
-        'width: 100%',
-        'border-spacing: 0'
-    ].join(';')
-
     /**
-     * @typedef {{tableView: boolean, isHorizontal: boolean, pageMode: boolean}} TypeViewModes
-     */
-    /**
-     * @typedef {(viewModes: TypeViewModes, range: import('./virtual').TypeRange | null) => string} TypeStyleCallback
+     * @typedef {(
+     *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean},
+     *  range: import('./virtual').TypeRange | null) => string
+     * } TypeStyleCallback
      */
 
 
-    /**
-     * @type {TypeStyleCallback} returns the style of header slot
-     */
-    export function wrapperStyle({tableView, pageMode}) {
+    /** @type {TypeStyleCallback} returns the style of wrapper element */
+    export let wrapperStyle = ({tableView, pageMode}) => {
         const cssProps = [
             'position: relative',
             'height: inherit'
@@ -371,10 +340,8 @@
         return cssProps.join(";")
     }
 
-    /**
-     * @type {TypeStyleCallback} returns the style of root elem.
-     */
-    export function rootStyle({tableView, isHorizontal, pageMode}) {
+    /** @type {TypeStyleCallback} returns the style of root elem. */
+    export let rootStyle = ({tableView, isHorizontal, pageMode}) => {
         const cssProps = [
             `height: ${pageMode || tableView ? "auto" : "inherit"}`,
             'max-width: 100%'
@@ -388,7 +355,12 @@
 
         if (tableView) {
             cssProps.push(
-                tableStyle
+                'display: table',
+                // 'table-layout:fixed',
+                'padding: 0',
+                'border-collapse: collapse',
+                'width: 100%',
+                'border-spacing: 0'
                 // `margin: ${range?.padFront ?? 0}px 0px ${range?.padBehind ?? 0}px`
             )
         }
@@ -400,11 +372,8 @@
         return cssProps.join(";")
     }
 
-
-    /**
-     * @type {TypeStyleCallback} returns the style of list elem.
-     */
-    export function listStyle({tableView, isHorizontal}) {
+    /** @type {TypeStyleCallback} returns the style of list elem. */
+    export let listStyle = ({tableView, isHorizontal}) => {
         const cssProps = []
         if (isHorizontal && !tableView) {
             cssProps.push('display: flex', 'flex-direction: row', 'flex-wrap: nowrap')
@@ -412,27 +381,20 @@
         return cssProps.join(";")
     }
 
-    /**
-     * @type {TypeStyleCallback} returns the style of header slot
-     */
-    export function itemStyle() {
+    /** @type {TypeStyleCallback} returns the style of header slot */
+    export let itemStyle = () => {
         return ''
     }
 
-    /**
-     * @type {TypeStyleCallback} returns the style of header slot
-     */
-    export function headerSlotStyle() {
+    /** @type {TypeStyleCallback} returns the style of header slot */
+    export let headerSlotStyle = () => {
         return ''
     }
 
-    /**
-     * @type {TypeStyleCallback} returns the style of footer slot
-     */
-    export function footerSlotStyle() {
+    /** @type {TypeStyleCallback} returns the style of footer slot */
+    export let footerSlotStyle = () => {
         return ''
     }
-
 
     const rifDocumentScroll = rifFn(() => {
         updatePageModeFront()
@@ -440,23 +402,22 @@
         tick().then(() => updatePageModeFront())
     })
 
-    /** @param {Event} e */
+
+    /** @param {Event} e scroll event for window */
     function onDocumentScroll(e) {
         if (!pageMode) return
         onScroll(e)
         rifDocumentScroll()
     }
 
-    /** for tables
-     * @param {Event} e
-     */
+    /** @param {Event} e scroll event for wrapper in table view */
     function onWrapperScroll(e) {
         if (!pageMode && tableView) {
             onScroll(e)
         }
     }
 
-    /** @param {Event} e */
+    /** @param {Event} e scroll event for root */
     function onRootScroll(e) {
         if (pageMode || tableView) {
             return
@@ -465,7 +426,7 @@
     }
 
 
-    /** @param {UIEvent} e */
+    /** @param {UIEvent} e resize event for window */
     function onWindowResize(e) {
         onScroll(e) // keep it on top
         if (pageMode) rifDocumentScroll()
@@ -475,30 +436,22 @@
     onMount(() => {
         if (start) {
             scrollToIndex(start)
-        } else if (offset) {
-            scrollTo(offset)
+        } else if (scrollPos) {
+            scrollTo(scrollPos)
         }
 
         if (browser) {
             updatePageModeFront()
-
-            document.addEventListener("scroll", onDocumentScroll, {
-                passive: false
-            })
-            // wrapper.addEventListener("scroll", onWrapperScroll, {
-            //     passive: false
-            // })
-
-            window.addEventListener("resize", onWindowResize)
+            // document.addEventListener("scroll", onDocumentScroll, { passive: false })
+            // window.addEventListener("resize", onWindowResize)
         }
     })
 
     onDestroy(() => {
         virtual.destroy()
         if (browser) {
-            document.removeEventListener("scroll", onDocumentScroll)
-            // wrapper.removeEventListener("scroll", onWrapperScroll)
-            window.removeEventListener("resize", onWindowResize)
+            // document.removeEventListener("scroll", onDocumentScroll)
+            // window.removeEventListener("resize", onWindowResize)
         }
     })
 
@@ -525,9 +478,7 @@
     }
 
 
-    /**
-     * @param {Event | UIEvent} event
-     */
+    /** @param {Event | UIEvent} event */
     function onScroll(event) {
         const scrollPos = getScrollPos()
         const clientSize =  getClientSize()
@@ -560,7 +511,10 @@
     }
 
 
-
+    /**
+     * @param {boolean} reset reset calculated sizes and positions
+     * @param {string} [log] log message for debugging
+     */
     async function handleDataSourcesChange(reset = false, log = '') {
         if (reset) {
             virtual.reset()
@@ -570,8 +524,8 @@
         virtual.handleDataSourcesChange(log + ' | reset: ' + reset)
     }
 
-    // const initial = { value: true }
 
+    /** helper fn to determine what props have changed */
     const getChangedProps = (() => {
         /** @return {Object<string, unknown>} */
         const getCurrent = () => ({
@@ -598,62 +552,55 @@
         }
     })()
 
-    const propsTriggersReset = ['isHorizontal']
+    /** called for any changes that may affect the virtual list  */
+    const handlePropsChange = (function() {
+        const propsTriggersReset = ['isHorizontal']
+        const paramsToUpdate = Object.keys(defaults)
 
-    const paramsToUpdate = [
-        'keepsBehaviour',
-        'keeps',
-        'buffer',
-        'estimateSize',
-        'fillMaxSize',
-        'fillSizeMultiplier',
-        'autoAutoUpdateAverageSize',
-        'slotHeaderSize',
-        'slotFooterSize'
-    ]
+        return () => {
+            const changed = getChangedProps()
+            // no changes
+            if (changed.keys.length === 0) return
 
-    function handlePropsChange() {
-        const changed = getChangedProps()
+            // update page offset
+            updatePageModeFront()
 
-        if (changed.keys.length === 0) return
-
-
-        updatePageModeFront()
-
-        changed.keys.forEach(param => {
-            if (paramsToUpdate.includes(param)) {
-                // TODO: fix type
-                // @ts-ignore
-                virtual.updateParam(param, changed.values[param].to)
-            }
-        })
-
-        const hardReset = changed.keys.some((prop) => propsTriggersReset.includes(prop))
-
-
-        handleDataSourcesChange(hardReset, changed.keys.join(', '))
-
-        getDebug().any && console.info('params changed', changed, data.length)
-
-
-        if (changed.keys.includes('pageMode') || changed.keys.includes('isHorizontal')) {
-            tick().then(() => {
-                getDebug().any && console.info('refreshScrollPos')
-                virtual.refreshScrollPos()
+            // update virtual list params
+            changed.keys.forEach(param => {
+                if (paramsToUpdate.includes(param)) {
+                    // TODO: fix type
+                    // @ts-ignore
+                    virtual.updateParam(param, changed.values[param].to)
+                }
             })
+            // some props change require a hard reset because they affect calculations
+            const hardReset = changed.keys.some((prop) => propsTriggersReset.includes(prop))
+
+            // update data sources
+            handleDataSourcesChange(hardReset, changed.keys.join(', '))
+
+            getDebug().any && console.info('params changed', changed, data.length)
+
+            // refresh scroll position if pageMode or isHorizontal changed
+            if (changed.keys.includes('pageMode') || changed.keys.includes('isHorizontal')) {
+                tick().then(() => {
+                    getDebug().any && console.info('refreshScrollPos')
+                    virtual.refreshScrollPos()
+                })
+            }
         }
-    }
+    })()
 
 
+    let slotData = getSlotData()
 
-    $: scrollTo(offset)
+    $: scrollTo(scrollPos)
     $: scrollToIndex(start)
     $: setDebug(debug)
     $: {
-        if (debug?.debugKeeps) {
-            void displayItems
-            keepsCalculated = virtual.getKeepsCalculated()
-        }
+        void displayItems
+        // data passed to all slots: <slot let:slotData />
+        slotData = getSlotData()
     }
     $: propsRootDstructed = destructElementProps(propsRoot)
     $: propsListDstructed = destructElementProps(propsList)
@@ -686,20 +633,22 @@
         }
     }
 
+    // window.virtual = virtual
+
 </script>
 
-
+<svelte:window on:scroll={onDocumentScroll} on:resize={onWindowResize} />
 
 <div class="{nameSpace}__wrapper"
     bind:this={wrapper}
     on:scroll={onWrapperScroll}
     style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
 >
-    {#if (debug?.debugKeeps)}
-        <div class="{defaultNameSpace}__debug" style="z-index: 20; position: fixed; pointer-events: none; top: 2rem; right: 2rem; padding: 0.5rem; background: #222; color: #ccc; font-size: 24px;">
-            keeps: {keepsCalculated}
-        </div>
+
+    {#if $$slots.beforeList}
+        <slot name="beforeList" slotData={slotData} />
     {/if}
+
 
     <svelte:element
         {...propsRootDstructed.restProps}
@@ -707,7 +656,7 @@
         this={tableView ? 'table' : propsRootDstructed.tagName || 'div'}
         class={joinClassNames(
             nameSpace,
-            `${nameSpace}--dir-${isHorizontal ? "horizontal" : "vertical"}`,
+            `${nameSpace}--${isHorizontal ? "horizontal" : "vertical"}`,
             `${nameSpace}--view-${tableView ? "table" : "list"}`,
             `${nameSpace}--${pageMode ? "page-mode" : "overflow-mode"}`,
             propsRootDstructed.className
@@ -719,14 +668,14 @@
         {#if $$slots.header}
             <Item
                 tagName={tableView ? "thead" : "div"}
-                style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
+                style={headerSlotStyle({tableView, isHorizontal, pageMode}, range)}
                 {...propsHeaderSlot}
                 on:resize={onItemResized}
                 nameSpace="{nameSpace}"
                 type="slot"
                 uniqueKey="header"
             >
-                <slot name="header"/>
+                <slot name="header" slotData={slotData} />
             </Item>
         {/if}
 
@@ -739,9 +688,9 @@
         >
             {#if range}
                 <svelte:element
-                    class="{nameSpace}__spacer-top"
+                    class="{nameSpace}__spacer {nameSpace}__spacer-top"
                     this={tableView ? 'tr' : 'div'}
-                    style={`border: 0 none; padding: 0; ${isHorizontal ? 'width' : 'height'}: ${range.padFront}px`}
+                    style={`${isHorizontal ? 'width' : 'height'}: ${range.padFront}px`}
                 />
             {/if}
 
@@ -762,30 +711,47 @@
                     horizontal={isHorizontal}
                     type="item"
                 >
-                    <slot {index} data={dataItem} />
+                    <slot {index} data={dataItem} slotData={slotData} />
                 </Item>
             {/each}
 
+            {#if displayItems.length === 0}
+                <Item
+                    tagName={tableView ? "tr" : "div"}
+                    style={itemStyle({tableView, isHorizontal, pageMode}, range)}
+                    {...propsItemDstructed.restProps}
+                    className={propsItemDstructed.className}
+                    nameSpace="{nameSpace}"
+                    on:resize={onItemResized}
+                    uniqueKey="empty"
+                    horizontal={isHorizontal}
+                    type="item"
+                >
+                    <slot name="empty" slotData={slotData} />
+                </Item>
+            {/if}
+
             {#if range}
                 <svelte:element
-                    class="{nameSpace}__spacer-bottom"
+                    class="{nameSpace}__spacer {nameSpace}__spacer-bottom"
                     this={tableView ? 'tr' : 'div'}
-                    style={`border: 0 none; padding: 0; ${isHorizontal ? 'width' : 'height'}: ${range.padBehind}px`}
+                    style={`${isHorizontal ? 'width' : 'height'}: ${range.padBehind}px`}
                 />
             {/if}
         </svelte:element>
 
-
-        <Item
-            tagName={tableView ? "tfoot" : "div"}
-            style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
-            {...propsFooterSlot}
-            on:resize={onItemResized}
-            type="slot"
-            uniqueKey="footer"
-        >
-            <slot name="footer"/>
-        </Item>
-
+        {#if $$slots.footer}
+            <Item
+                tagName={tableView ? "tfoot" : "div"}
+                style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
+                {...propsFooterSlot}
+                on:resize={onItemResized}
+                type="slot"
+                uniqueKey="footer"
+            >
+                <slot name="footer" slotData={slotData} />
+            </Item>
+        {/if}
     </svelte:element>
+
 </div>

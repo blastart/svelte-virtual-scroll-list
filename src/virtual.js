@@ -37,7 +37,7 @@ let logErrors = true
 */
 
 /**
- * @param {TypeDebugOptions}  options
+ * @param {TypeDebugOptions} options
 */
 
 export const setDebug = (options) => {
@@ -70,6 +70,7 @@ export const getDebug = () => ({
     any: !!(logEfficiency || logInfo)
 })
 
+
 export const defaultNameSpace = 'virtual-scroll'
 
 export const browser = typeof window !== "undefined"
@@ -90,12 +91,14 @@ export const browser = typeof window !== "undefined"
  */
 
 /**
- * Scroll to position call to be applied on the current scollable container.
+ * Scroll to position call to be applied on the current scollable
+ * container.
  * @typedef {(position: TypeScrollPos) => void} TypeScrollToFn
  */
 
 /**
- * items to render in addition to the keeps. recommend for a third of keeps
+ * items to render in addition to the keeps. recommend
+ * for a third of keeps
  * @typedef {number} TypeBuffer - buffer
  */
 /**
@@ -104,35 +107,38 @@ export const browser = typeof window !== "undefined"
  */
 /**
  * estimate size of the item
- * @typedef {number} TypeEstimateSize - estimateSize
+ * @typedef {number | ((key: TypeUniqueId) => number)} TypeEstimateSize
  */
 /**
  * behaviour of the keeps calculation
  * @typedef {KEEPS_BEHAVIOUR} TypeKeepsBehaviour - keepsBehaviour
  */
 /**
- * Maximum fill height, prevents infinite cycles if the parent element has no height set
- * @typedef {number} TypeFillMaxSize -
+ * Maximum fill height, prevents infinite cycles if the parent
+ * element has no height set
+ * @typedef {number} TypeFillMaxSize - fillMaxSize
  */
 /**
- * Viewport multiplier. According to keepsBehavior, it increases the size of the viewport to be filled with elements in order to ensure smooth scrolling even when scrolling fast. The value of "keeps" increases in proportion to the viewport.
+ * Viewport multiplier. According to keepsBehavior, it increases
+ * the size of the viewport to be filled with elements in order
+ * to ensure smooth scrolling even when scrolling fast.
+ * The value of "keeps" increases in proportion to the viewport.
  * @typedef {number} TypeFillSizeMultiplier - fillSizeMultiplier
  */
 /**
- * size of the header slot
- * @typedef {number} TypeSlotHeaderSize - slotHeaderSize
+ * @typedef {number} TypeSlotHeaderSize - slotHeaderSize  ize of the header slot
  */
 /**
- * size of the footer slot
- * @typedef {number} TypeSlotFooterSize - slotFooterSize
+ * @typedef {number} TypeSlotFooterSize - slotFooterSize size of the footer slot
  */
 /**
- * in vertical mode, offset left, otherwise offset top of the root element (eg: root.getBoundingClientRect().top + window.pageYOffset)
+ * in vertical mode, offset left, otherwise offset top of the root element
+ * (eg: root.getBoundingClientRect().top + window.pageYOffset)
  * @typedef {number} TypePageModeOffset - pageModeOffset
  */
 /**
  * update the average size of items after each scroll
- * @typedef {boolean} TypeAutoUpdateAverageSize - autoAutoUpdateAverageSize
+ * @typedef {boolean} TypeAutoUpdateAverageSize
  */
 
 /**
@@ -260,7 +266,7 @@ const logMsgs = {
 /** @type {TypeParamOptional} */
 export const defaults = {
     keeps: 30,
-    keepsBehaviour: KEEPS_BEHAVIOUR.AUTO_ADJUST,
+    keepsBehaviour: KEEPS_BEHAVIOUR.AUTO_INCREASE,
     slotHeaderSize: 0,
     slotFooterSize: 0,
     pageModeOffset: 0,
@@ -641,7 +647,7 @@ class Virtual {
     }
 
     /** save each size map by id
-     * @param {import('./index').TypeUniqueKey} id
+     * @param {TypeUniqueId} id
      * @param {number} size
      */
     saveSize(id, size) {
@@ -663,6 +669,7 @@ class Virtual {
         this.calcAverageSizeOnce()
     }
 
+    /** reset calculated size values  */
     resetSizes() {
         this.sizes.clear()
         this.firstRangeAvgCalculated = false
@@ -968,7 +975,8 @@ class Virtual {
         for (; index < givenIndex; index++) {
             // this.__getIndexOffsetCalls++
             indexSize = this.getSizeByIndex(index)
-            offset = offset + (typeof indexSize === "number" ? indexSize : this.getEstimateSize())
+            offset = offset + indexSize
+            // offset = offset + (typeof indexSize === "number" ? indexSize : this.getEstimateSize())
         }
         // remember last calculate index
         const calcIndex = Math.max(this.lastIndexOffset.calcIndex, givenIndex - 1)
@@ -977,6 +985,13 @@ class Virtual {
         this.lastIndexOffset.offset = offset
         return offset
     }
+    /**
+     * return  uniqueId by index
+     * @param {number} index
+     */
+    getIdByIndex(index) {
+        return this.param?.uniqueIds[index]
+    }
 
     /**
      * return item size based on the index of uniqueIds array
@@ -984,7 +999,8 @@ class Virtual {
      */
     getSizeByIndex(index) {
         if (!this.param) return 0
-        return this.sizes.get(this.param.uniqueIds[index]) || this.getEstimateSize()
+        const uniqueId = this.getIdByIndex(index)
+        return (uniqueId && this.sizes.get(uniqueId)) || this.getEstimateSize(uniqueId)
     }
 
     /** is fixed size type */
@@ -1025,7 +1041,7 @@ class Virtual {
             start = end - keeps + 1
         }
 
-        if (start >= end) {
+        if (start >= end && this.getLastIndex() > 0) {
             this.logError("start should less than end", start, end)
         }
         if (this.range.start !== start || this.range.end !== end || force) {
@@ -1259,6 +1275,32 @@ class Virtual {
             return (lastIndex - end) * this.getEstimateSize()
         }
     }
+
+
+    /**
+     * get the item estimate size
+     * @param {TypeUniqueId | undefined} [uniqueId]
+     * @returns {number}
+     */
+    getEstimateSize(uniqueId) {
+        let size = 0
+
+        if (typeof this.param?.estimateSize === 'function' && uniqueId) {
+            size = this.param?.estimateSize(uniqueId)
+            if (typeof size === 'number' && size >= 0) {
+                return size
+            }
+        } else if (this.isFixedType()) {
+            return this.fixedSizeValue
+        } else if (this.averageSize) {
+            return this.averageSize || 0
+        } else if (typeof this.param?.estimateSize === 'number') {
+            return this.param?.estimateSize || 0
+        }
+
+        return 0
+    }
+
     /**
      * @param {number} start scroll position by index
      * @returns {TypeScrollPos} return start index scroll position
@@ -1275,17 +1317,6 @@ class Virtual {
         return px + this.getFrontSize()
     }
 
-    /**
-     * get the item estimate size
-     * @returns {number}
-     */
-    getEstimateSize() {
-        return this.isFixedType()
-            ? this.fixedSizeValue
-            : (this.averageSize || this.param?.estimateSize || 0)
-    }
-
-
     scrollToIndex(index = 0) {
         this.param?.scrollTo(
             this.getScrollPosByIndex(
@@ -1298,6 +1329,7 @@ class Virtual {
         const newPos = this.getScrollPosByPx(px)
         this.param?.scrollTo(newPos)
     }
+
     refreshScrollPos(force = false) {
         if (!force && this.scrollPosRaw <= 0) {
             // @efficiency
