@@ -134,6 +134,7 @@ More examples available in `example` folder
 |document as a list|+|+|-|-|
 |dynamic viewport filling|+|-|?|?
 |adjusts the average size after scrolling|+|-|?|?
+|ARIA - Accessibility - (in progress)|*|-|-|-
 |support tables|+|-|-|-
 
 # API
@@ -207,7 +208,7 @@ Access to methods by component binding
 
 ##Styles
 
-
+TODO: document new slots & slotData, aria attributes
 
 
 ## Events

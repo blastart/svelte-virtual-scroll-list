@@ -1113,16 +1113,14 @@ class Virtual {
     }
 
     /**
-     * check whether need render more or fewer items
+     *  return false if certain conditions prevent renderingg
      * @param {{
      *  range: TypeRange,
      *  rangeSize: number,
-     *  desiredFillSize: number,
      * }} param0
-     * @param {unknown} logData
      */
 
-    rerenderNeeded({range, rangeSize, desiredFillSize}, logData) {
+    renderPrevented({range, rangeSize}) {
         if (!this.param) return false
         const noMoreItems = this.getLastIndex() <= range.end
         if (noMoreItems) {
@@ -1132,12 +1130,10 @@ class Virtual {
             logEfficiency && console.warn('pref: checkRendered() escape: clientSize === 0')
         } else if (rangeSize === 0) {
             logEfficiency && console.warn('pref: checkRendered() escape: rangeSize === 0')
-        } else if (rangeSize < desiredFillSize) {
-            return true
         } else {
-            logInfo && console.log('range bigger than viewport', logData)
+            return false
         }
-        return false
+        return true
     }
 
     /**
@@ -1157,6 +1153,9 @@ class Virtual {
             desiredFillSize, rangeSize, lastChanged, range, param,
             keepsCalculated: this.getKeepsCalculated()
         }
+        if (this.renderPrevented({range, rangeSize})) {
+            return
+        }
 
         // [...document.querySelectorAll('.virtual-scroll__item')].reduce((a, c) => a + c.clientHeight, 0);
         /**
@@ -1165,9 +1164,9 @@ class Virtual {
         const reset = this.clientSize < this.last.clientSize && this.param.fillMaxSize > this.clientSize
         const keeps = reset ? this.getKeeps() : this.getKeepsCalculated()
 
-        if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AUTO_ADJUST) {
+        // if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AUTO_ADJUST) {
 
-        }
+        // }
 
         if (reset) {
             // this.setKeepsCalculated(keeps)
@@ -1185,18 +1184,23 @@ class Virtual {
 
         this.setLastChanged(param, range, rangeSize)
 
-        if (this.rerenderNeeded({range, rangeSize, desiredFillSize}, logData)) {
-            if (this.isFixedType()) {
-                this.fixedSizeValue
-                // const diff = desiredFillSize - rangeSize
-                // this.updateParam('keeps', this.getKeepsCalculated() + 1)
-                // TODO: calc the exact keeps to fill the viewport by one render
-            }
-            this.setKeepsCalculated(this.getKeepsCalculated() + 1)
-            this.checkRange(range.start, this.getEndByStart(range.start))
-
-            logInfo && console.log("info: checkRendered() range smaller than viewport", logData)
+        if (rangeSize > desiredFillSize) {
+            return true
+            logInfo && console.log('range bigger than desiredFillSize', logData)
         }
+
+
+        if (this.isFixedType()) {
+            this.fixedSizeValue
+            desiredFillSize / this.fixedSizeValue
+            this.setKeepsCalculated(Math.ceil(desiredFillSize / this.fixedSizeValue))
+        } else {
+            this.setKeepsCalculated(this.getKeepsCalculated() + 1)
+        }
+        this.checkRange(range.start, this.getEndByStart(range.start))
+
+        logInfo && console.log("info: checkRendered() range smaller than viewport", logData)
+
     }
 
     /**

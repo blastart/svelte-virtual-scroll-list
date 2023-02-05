@@ -75,7 +75,6 @@
     <button on:click={() => addItems(false, 10)}>Append 10 </button>
 </div>
 
-{console.log(list)}
 
 <div class="vs">
     <VirtualScroll

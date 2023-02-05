@@ -198,7 +198,7 @@
                 </div>
                 {/if}
             </div>
-    </div>
+        </div>
     </header>
     <hr class="h-line" />
     <main>
@@ -438,6 +438,7 @@
         background-color: var(--hihglight-color);
         padding: 0.5rem 1rem;
         color: black;
+        z-index: 100;
     }
 
     :global(.test-offset-change) {

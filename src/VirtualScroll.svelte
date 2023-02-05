@@ -752,6 +752,11 @@
                 <slot name="footer" slotData={slotData} />
             </Item>
         {/if}
+
     </svelte:element>
+
+    {#if $$slots.afterList}
+        <slot name="afterList" slotData={slotData} />
+    {/if}
 
 </div>
