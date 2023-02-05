@@ -1,7 +1,6 @@
 <script>
     import VirtualScroll from "../src/VirtualScroll.svelte"
     import {createSequenceGenerator, randomInteger, randomWord, randomString} from "./mock"
-    import TestTableCell from "./TestTableCell.svelte"
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
@@ -10,7 +9,7 @@
 
     const getItemId = createSequenceGenerator()
 
-    /** @type {{height: number, uniqueKey: number, word: string }[]} */
+    /** @type {{height: string, uniqueKey: number, word: string }[]} */
     let items = []
     /** @type {number} */
     export let keeps
@@ -26,7 +25,7 @@
         for (let i = 0; i < count; i++) {
             new_items.push({
                 uniqueKey: getItemId(),
-                height: fixSize ? 50 : randomInteger(40, 300),
+                height: `${fixSize ? 50 : randomInteger(40, 300)}`,
                 word: randomWord(),
                 string: randomString(0, 30)
             })
@@ -39,22 +38,22 @@
         {
             prop: 'uniqueKey',
             label: 'id',
-            width: '60px'
+            width: 60
         },
         {
             prop: 'height',
             label: 'Height',
-            width: '100px'
+            width: 100
         },
         {
             prop: 'word',
             label: 'Word',
-            width: '140px'
+            width: 140
         },
         {
             prop: 'string',
             label: 'Long text',
-            width: 'auto'
+            width: null
         }
     ]
 
@@ -76,6 +75,8 @@
     <button on:click={() => addItems(false, 10)}>Append 10 </button>
 </div>
 
+{console.log(list)}
+
 <div class="vs">
     <VirtualScroll
         bind:this={list}
@@ -89,21 +90,30 @@
         tableView={true}
         isHorizontal={horizontalMode}
     >
+        <!-- <his slot is used to render debug info, no need to use it in production -->
+        <div slot="beforeList" let:slotData><slot name="appDebugInfo" {slotData} /></div>
+
+        <th slot="empty" colspan={cells.length}><div style="padding: 2em; text-align: center;">No items</div></th>
+
         <tr slot="header">
             {#each cells as cell}
-                <th style:width={cell.width}><div class="inner">{cell.label}</div></th>
+                <th style:width={cell.width ? `${cell.width}px` : null}>
+                    <div class="cell-inner">{cell.label}</div>
+                </th>
             {/each}
         </tr>
 
         {#each cells as cell (cell.prop)}
-            <TestTableCell height="{data.height}px" width={cell.width}>
-                {#if cell.prop === "height"}
-                    set: {data[cell.prop]} <br />
-                    calc: {list?.getSize(data.uniqueKey) || 'n/a'}
-                {:else}
-                    {data[cell.prop]}
-                {/if}
-            </TestTableCell>
+            <td>
+                <div class="cell-inner" style="min-height: {data.height}px; min-width: {cell.width}px">
+                    {#if cell.prop === "height"}
+                        set: {data[cell.prop]} <br />
+                        calc: {list?.getSize(data.uniqueKey) || 'n/a'}
+                    {:else}
+                        {data[cell.prop]}
+                    {/if}
+                </div>
+            </td>
         {/each}
 
         <tr slot="footer">
@@ -123,11 +133,17 @@
         max-width: none;
     }
 
-
-    .vs :global(th .inner) {
+    .cell-inner {
         padding: 10px 5px;
+        box-sizing: border-box;
     }
-    .vs :global(td), .vs :global(th) {
+
+    .vs :global(thead .cell-inner)  {
+        padding-top: 15px;
+        padding-top: 15px;
+    }
+
+    .vs td, th {
         border: 1px solid #888;
         border-top: 0 none;
         color: black;
@@ -136,6 +152,7 @@
         padding: 0;
         margin: 0;
     }
+
     .vs :global(thead) {
         /* It's a bit tricky,
             unfortunately Firefox doesn't draw borders
@@ -153,6 +170,5 @@
         /* for firefox */
         box-shadow: -1px 0px 0 #888;
     }
-
 
 </style>

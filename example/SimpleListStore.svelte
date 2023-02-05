@@ -88,6 +88,12 @@
         on:bottom={() => addNotification("bottom")}
         on:top={() => addNotification("top")}
     >
+
+        <!-- <his slot is used to render debug info, no need to use it in production -->
+        <div slot="beforeList" let:slotData><slot name="appDebugInfo" {slotData} /></div>
+
+        <div slot="empty"><div style="padding: 2em; text-align: center;">No items</div></div>
+
         <div slot="header">
             This is a header
         </div>

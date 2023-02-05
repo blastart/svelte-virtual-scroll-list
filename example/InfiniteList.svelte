@@ -97,16 +97,24 @@
         on:bottom={() => asyncAddItems(false)}
         start={30}
     >
+
+        <!-- <his slot is used to render debug info, no need to use it in production -->
+        <div slot="beforeList" let:slotData><slot name="appDebugInfo" {slotData} /></div>
+
+        <div slot="empty"><div style="padding: 2em; text-align: center;">No items</div></div>
+
         <div slot="header">
             {#if loading && loadingDirection === "top"}
                 loading...
             {/if}
         </div>
+
         <TestItem horizontalMode={horizontalMode} {...data}>
             <var>key: {data.uniqueKey}</var>
             <var>set: {data.size}</var>
             <var>calc: {list?.getSize(data.uniqueKey) || 'n/a'}</var>
         </TestItem>
+
         <div slot="footer">
             {#if loading && loadingDirection === "bottom"}
                 loading...

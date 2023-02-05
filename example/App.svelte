@@ -51,16 +51,18 @@
     }
 
     /**
-     * @param {import('../src/virtual').TypeDebugOptions & {debugKeeps: boolean}} debug
+     * @param {import('../src/index').TypeDebugVirtualScroll} debug
     */
     function validateDebug(debug) {
-        const {efficiency = 0, info = 0, debugKeeps = false} = (
+        const {efficiency = 0, info = 0, others = {showKeeps: false}} = (
             typeof debug === "object" && debug ? debug : {}
         )
         return {
             efficiency: isNumInRange(efficiency, 0, 2) ? efficiency : 0,
             info: isNumInRange(info, 0, 2) ? info : 0,
-            debugKeeps: !!debugKeeps,
+            others: others && typeof others?.showKeeps === "boolean" ? others : {
+                showKeeps: false
+            },
             logErrors: true
         }
     }
@@ -74,7 +76,7 @@
     let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") === "1"
     let keeps =  parseKeepsParam() || defaults.keeps
-    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AS_IS
+    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AUTO_INCREASE
     let debug = validateDebug(parseJSON(getParam("debug")))
 
 
@@ -172,11 +174,8 @@
             </div>
         </div>
         <div class="page-state-container">
-            Current page: {currentPage.name} | horizontal mode:
             {#if horizontalMode && currentPage.horizontalModeNotSupported === true}
-                <b style="color: red">not supported</b>
-            {:else}
-            {horizontalMode}
+                <b style="color: red">Table: horizontal view not supported</b>
             {/if}
             <div class="other-ops" use:useClickOutside on:click_outside={hideOtherOptions}>
                 <button on:click={() => { showOtherOptions = !showOtherOptions }} class="other-ops__show-others">
@@ -187,23 +186,41 @@
                     <label>
                         debug.logErrors <input disabled type="checkbox" bind:checked={debug.logErrors} />
                     </label>
-                    <label title="0 - no log | 1 - log  major info | 2 - log  major & minor info">
-                        debug.info <input bind:value={debug.info} type=number min=0 max=2>
+                    <label title="0 - no log | 1 - log major info | 2 - log major & minor info">
+                        debug.info <input style:width="45px" bind:value={debug.info} type="number" min="0" max="2" maxlength="1">
                     </label>
-                    <label title="0 - no log | 1 - log  major efficient improvements | 2 - log  major & minor improvements">
-                        debug.efficiency <input bind:value={debug.efficiency} type=number min=0 max=2>
+                    <label title="0 - no log | 1 - log major efficient improvements | 2 - log major & minor improvements">
+                        debug.efficiency <input style:width="45px" bind:value={debug.efficiency} type="number" min="0" max="2" maxlength="1">
                     </label>
                     <label>
-                        debug.debugKeeps <input type="checkbox" bind:checked={debug.debugKeeps} />
+                        showKeeps <input type="checkbox" bind:checked={debug.others.showKeeps} />
                     </label>
                 </div>
                 {/if}
             </div>
-        </div>
+    </div>
     </header>
     <hr class="h-line" />
     <main>
-        <svelte:component debug={debug} behavior={behavior} keeps={keeps} fixSize={fixSize} pageMode={pageMode} horizontalMode={horizontalMode} this={currentPage.component}/>
+        <svelte:component
+            debug={debug}
+            behavior={behavior}
+            keeps={keeps}
+            fixSize={fixSize}
+            pageMode={pageMode}
+            horizontalMode={horizontalMode}
+            this={currentPage.component}
+        >
+            <div slot="appDebugInfo" let:slotData>
+                {#if (debug?.others?.showKeeps)}
+                <div class="app__debug" style="z-index: 20; position: fixed; bottom: 1rem; left: 1rem; padding: 0.5rem; background: #222; color: #ccc; font-size: 18px;">
+                    <b title="Calculated value of keeps">keeps:</b> {slotData?.keepsCalculated}
+                    <br>
+                    <small><b title="Fixed type as long as the list contains elements of the same size.">fixed:</b> {slotData?.isFixedType ? 'yes' : 'no'}</small>
+                </div>
+                {/if}
+            </div>
+        </svelte:component>
     </main>
 </div>
 
@@ -381,6 +398,11 @@
         box-sizing: border-box;
         pointer-events: none;
     }
+    :global(.overflow-buttons button) {
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
     :global(.sticky-header.page-mode .overflow-buttons) {
         top: auto;
         left: 0;
@@ -423,6 +445,15 @@
     }
     :global(.test-offset-change.horizontal-mode) {
         animation: wobblePaddingLeft 2000ms infinite linear;
+    }
+
+    :global(.virtual-scroll__spacer) {
+        padding: 0;
+        border: 0 none;
+        will-change: height;
+    }
+    :global(.virtual-scroll--dir-horizontal .virtual-scroll__spacer) {
+        will-change: width;
     }
 
     @media (max-width: 900px) {
