@@ -60,7 +60,7 @@ or
 <style>
     .vs{
         /* if pageMode is false the height must be an exact size */
-        height: 300px;
+        height: 400px;
         max-width: 100%;
     }
 </style>
@@ -108,7 +108,7 @@ or
                 </div>
             </td>
         {/each}
-        <!-- tbody rows -->
+        <!-- tfoot rows -->
         <tr slot="footer">
             <th colspan={cells.length}>This is a footer set via slot</th>
         </tr>
@@ -116,7 +116,7 @@ or
 
     <style>
     .vs{
-        /* if pageMode is true the height should be set to "auto" */
+        /* height must be set to "auto" if pageMode is enabled. */
         height: auto;
         max-width: none;
     }

@@ -129,7 +129,7 @@
 
 <style>
     .vs{
-        height: 300px;
+        height: 400px;
         max-width: 100%;
     }
     :global(.page-mode) .vs{

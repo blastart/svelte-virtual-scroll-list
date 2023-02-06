@@ -74,7 +74,7 @@
     let currentPage = getPageByName(getParam("page"))
     let horizontalMode = getParam("horizontal") === "1"
     let fixSize = getParam("fixSize") === "1"
-    let pageMode = getParam("pageMode") === "1"
+    let pageMode = getParam("pageMode") ? getParam("pageMode") === "1" : true
     let keeps =  parseKeepsParam() || defaults.keeps
     let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AUTO_INCREASE
     let debug = validateDebug(parseJSON(getParam("debug")))
@@ -113,6 +113,17 @@
         document.documentElement.classList.toggle("test-offset-change", testOffsetChange)
         pages = pages.slice(0)
 
+    }
+
+    let lastHorizontalMode = horizontalMode
+
+    $: {
+        // TODO: there is a calculation bug when switching immediately between
+        // horizontal and vertical mode. Should be fixed later, until then here is a page reload...
+        if (horizontalMode !== lastHorizontalMode) {
+            lastHorizontalMode = horizontalMode
+            window.location.reload()
+        }
     }
 
 
