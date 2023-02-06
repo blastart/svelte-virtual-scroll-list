@@ -145,7 +145,7 @@ More examples available in `example` folder
 |dynamic viewport filling|+|-|?|?|
 |adjusts the average size after scrolling|+|-|?|?|
 |**support tables**|+|-|-|-
-|ARIA - Accessibility<br /> - (in progress)|-|?|?|?|
+|ARIA - Accessibility<br /> - (in progress)|*|-|?|?|
 |fully documented with JsDoc Ts|+|-|?|?|
 
 # API
