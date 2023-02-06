@@ -80,7 +80,7 @@
     /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
-    export let keepsBehaviour = Virtual.KEEPS_BEHAVIOUR.AUTO_INCREASE
+    export let keepsBehaviour = defaults.keepsBehaviour
 
 
     /** @return {('scrollLeft'|'scrollTop')} */
@@ -127,7 +127,7 @@
         autoAutoUpdateAverageSize,
         slotHeaderSize,
         slotFooterSize,
-        buffer: buffer || Math.round(keeps || 30 / 3) || undefined, // recommend for a third of keeps
+        buffer, // recommend for a third of keeps
         uniqueIds: getUniqueIdFromDataSources(),
 
         scrollTo: (pos) => scrollTo(pos)
@@ -256,8 +256,8 @@
                     ? (rect.left + defaultView.pageXOffset)
                     : (rect.top + defaultView.pageYOffset)
 
-                // offset = Math.round(offsetRaw * 10) / 10
-                offset = offsetRaw
+                offset = Math.round(offsetRaw * 10) / 10
+                // offset = offsetRaw
             }
 
             if (offset === lastOffset) return
@@ -436,10 +436,15 @@
         onScroll(e)
     }
 
+    // const onWindowResizeDebounced = debounceFn((e) => {
+    //     // @ts-ignore
+    //     onScroll(e)
+    // }, 250)
 
     /** @param {UIEvent} e resize event for window */
     function onWindowResize(e) {
         onScroll(e) // keep it on top
+        // onWindowResizeDebounced(e)
         if (pageMode) rifDocumentScroll()
     }
 
@@ -590,7 +595,7 @@
             // update data sources
             handleDataSourcesChange(hardReset, changed.keys.join(', '))
 
-            getDebug().any && console.info('params changed', changed, data.length)
+            getDebug().logInfo > 0 && console.info('info: params changed', changed, data.length)
 
             // refresh scroll position if pageMode or isHorizontal changed
             if (changed.keys.includes('pageMode') || changed.keys.includes('isHorizontal')) {

@@ -28,14 +28,13 @@
         setParam("page", name)
     }
 
-    const keepsDefault = 30
 
     const parseKeepsParam = () => {
         const keeps = parseInt(getParam("keeps"), 10)
         if (keeps && !isNaN(keeps) && isFinite(keeps) && keeps >= MIN_KEEPS) {
             return keeps
         }
-        return keepsDefault
+        return defaults.keepsBehaviour
     }
 
     const createUrlSearchParams = (pageName = '') => {
@@ -44,7 +43,7 @@
         if (pageMode) params.set("pageMode", "1")
         if (fixSize) params.set("fixSize", "1")
         if (horizontalMode) params.set("horizontal", "1")
-        if (keeps !== keepsDefault) params.set("keeps", keeps.toString())
+        if (keeps !== defaults.keepsBehaviour) params.set("keeps", keeps.toString())
         if (behavior !== "auto") params.set("behavior", behavior)
         params.set("debug", JSON.stringify(debug))
         return '?' + params.toString()
@@ -54,14 +53,14 @@
      * @param {import('../src/index').TypeDebugVirtualScroll} debug
     */
     function validateDebug(debug) {
-        const {efficiency = 0, info = 0, others = {showKeeps: false}} = (
+        const {efficiency = 0, info = 0, others = {showKeeps: true}} = (
             typeof debug === "object" && debug ? debug : {}
         )
         return {
             efficiency: isNumInRange(efficiency, 0, 2) ? efficiency : 0,
             info: isNumInRange(info, 0, 2) ? info : 0,
             others: others && typeof others?.showKeeps === "boolean" ? others : {
-                showKeeps: false
+                showKeeps: true
             },
             logErrors: true
         }
@@ -76,7 +75,7 @@
     let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") ? getParam("pageMode") === "1" : true
     let keeps =  parseKeepsParam() || defaults.keeps
-    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : KEEPS_BEHAVIOUR.AUTO_INCREASE
+    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : defaults.keepsBehaviour
     let debug = validateDebug(parseJSON(getParam("debug")))
 
 
@@ -115,6 +114,13 @@
 
     }
 
+    $: {
+        void behavior
+        if (behavior !== KEEPS_BEHAVIOUR.AS_IS) {
+            keeps = 10
+        }
+    }
+
     let lastHorizontalMode = horizontalMode
 
     $: {
@@ -125,6 +131,7 @@
             window.location.reload()
         }
     }
+
 
 
 </script>
