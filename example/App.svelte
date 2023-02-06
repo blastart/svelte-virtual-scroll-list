@@ -34,7 +34,7 @@
         if (keeps && !isNaN(keeps) && isFinite(keeps) && keeps >= MIN_KEEPS) {
             return keeps
         }
-        return defaults.keepsBehaviour
+        return defaults.keeps
     }
 
     const createUrlSearchParams = (pageName = '') => {
@@ -43,7 +43,7 @@
         if (pageMode) params.set("pageMode", "1")
         if (fixSize) params.set("fixSize", "1")
         if (horizontalMode) params.set("horizontal", "1")
-        if (keeps !== defaults.keepsBehaviour) params.set("keeps", keeps.toString())
+        if (keeps !== defaults.keeps) params.set("keeps", keeps.toString())
         if (behavior !== "auto") params.set("behavior", behavior)
         params.set("debug", JSON.stringify(debug))
         return '?' + params.toString()
