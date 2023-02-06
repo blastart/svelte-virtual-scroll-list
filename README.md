@@ -142,10 +142,10 @@ More examples available in `example` folder
 |top/bottom slots|+|+|-|+|
 |reached top/bottom events|+|+|-|-|
 |document as a list|+|+|-|-|
-|dynamic viewport filling|+|-|?|?
-|adjusts the average size after scrolling|+|-|?|?
+|dynamic viewport filling|+|-|?|?|
+|adjusts the average size after scrolling|+|-|?|?|
 |**support tables**|+|-|-|-
-|ARIA - Accessibility<br /> - (in progress) -|-|?|?
+|ARIA - Accessibility<br /> - (in progress)|-|?|?|?|
 |fully documented with JsDoc Ts|+|-|?|?|
 
 # API
