@@ -205,11 +205,17 @@
     /** @type {() => number} scrollLeft or scrollTop depending on isHorizontal */
     export function getScrollPos() {
         if (!browser) return 0
-
         const pos = getScrollableKeyValue(getScrolltDirectionKey())
-
         return typeof pos === "number" ? pos : 0
     }
+
+    /** @type {() => number} scrollLeft or scrollTop depending on isHorizontal, relative */
+    export function getScrollPosRelative() {
+        if (!browser) return 0
+        const pos = getScrollPos()
+        return typeof pos === "number" ? virtual.getScrollPosByPx(pos) : 0
+    }
+
 
 
     /** @type {() => number} clientWidth or clientHeight depending on isHorizontal */
@@ -250,7 +256,7 @@
                     ? (rect.left + defaultView.pageXOffset)
                     : (rect.top + defaultView.pageYOffset)
 
-                // offset = Math.round(offsetRaw * 1000) / 1000
+                // offset = Math.round(offsetRaw * 10) / 10
                 offset = offsetRaw
             }
 
@@ -259,6 +265,11 @@
             lastOffset = offset
         }
     })()
+
+    /** @type {() => number} offset */
+    export function getPageModeFront() {
+        return virtual.getFrontSize()
+    }
 
     /** @type {(position: number) => void} - scroll to position by px */
     export function scrollTo(position) {
