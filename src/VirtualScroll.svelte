@@ -670,6 +670,7 @@
 
 <svelte:window on:scroll={onDocumentScroll} on:resize={onWindowResize} />
 
+<!-- Wrapper element -->
 <div class="{nameSpace}__wrapper"
     bind:this={wrapper}
     on:scroll={onWrapperScroll}
@@ -680,7 +681,7 @@
         <slot name="beforeList" slotData={slotData} />
     {/if}
 
-
+    <!-- Root element -->
     <svelte:element
         {...propsRootDstructed.restProps}
         style={rootStyle({tableView, isHorizontal, pageMode}, range)}
@@ -697,6 +698,7 @@
     >
 
         {#if $$slots.header}
+            <!-- Header -->
             <Item
                 tagName={tableView ? "thead" : "div"}
                 style={headerSlotStyle({tableView, isHorizontal, pageMode}, range)}
@@ -770,7 +772,7 @@
             {/if}
 
             {#if range}
-                <!-- bttom spacer -->
+                <!-- bottom spacer -->
                 <svelte:element
                     class="{nameSpace}__spacer {nameSpace}__spacer-bottom"
                     this={tableView ? 'tr' : 'div'}
@@ -780,6 +782,7 @@
         </svelte:element>
 
         {#if $$slots.footer}
+            <!-- Footer -->
             <Item
                 tagName={tableView ? "tfoot" : "div"}
                 style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
