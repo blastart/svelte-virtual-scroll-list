@@ -21,6 +21,12 @@ import VirtualScroll from "./VirtualScroll.svelte"
  * @typedef {UIEvent & {detail: TypeResizeEventDetail}} TypeResizeEvent
  */
 
+
+/**
+ * @typedef {(details: TypeResizeEventDetail, _native?: boolean) => void } TypeResizeFnPassive
+ */
+
+
 /**
  * @typedef TypeElementProps
  * @type {Object}

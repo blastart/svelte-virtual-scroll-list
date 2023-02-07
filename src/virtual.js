@@ -1259,7 +1259,9 @@ class Virtual {
             keepsCalculated: keeps
         }
 
-        if (this.renderPrevented({range, rangeSize, lastChanged}, logData)) return
+        if (this.renderPrevented({range, rangeSize, lastChanged}, logData)) {
+            return
+        }
 
         if (this.renderNeededForIncrease(desiredFillSize, rangeSize, range)) {
             if (this.isFixedType()) {

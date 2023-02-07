@@ -3,6 +3,7 @@
     import {defaultNameSpace} from "./virtual"
     import {joinClassNames} from "./lib"
 
+
     /**
      * @type {string} [tagName] - tagName of the item element
      */
@@ -38,12 +39,12 @@
      */
     export let type = "item"
 
-    /**
-     * @type {{ current: null | HTMLElement}} [ref]  - ref to the item element
-     */
-    export let ref = {
-        current: null
-    }
+    // /**
+    //  * @type {{ current: null | HTMLElement}} [ref]  - ref to the item element
+    //  */
+    // export let ref = {
+    //     current: null
+    // }
 
     /**
      * @type {ResizeObserver | null} [resizeObserver] - resize observer
@@ -59,6 +60,10 @@
      * @type {HTMLElement | undefined} [node] - item element for bind:node={parentVar}
      */
     export let node = undefined
+
+
+    /** @type {import('./index').TypeResizeFnPassive | undefined | null} */
+    export let onItemResizedPassive = null
 
     /**
      * @type {number} [previousSize] - previous size of the item
@@ -85,24 +90,33 @@
 
     const shapeKey = horizontal ? "offsetWidth" : "offsetHeight"
 
+
     function dispatchSizeChange() {
         const size = itemElement ? itemElement[shapeKey] : 0
         if (size === previousSize) return
+
         previousSize = size
         /** @type {import('./index').TypeResizeEventDetail} */
         const detail = {id: uniqueKey, size, type, index}
-        dispatch("resize", detail)
-    }
+        if (typeof onItemResizedPassive === "function") {
+            // console.time("onItemResizedPassive_" + uniqueKey)
+            onItemResizedPassive && onItemResizedPassive(detail)
 
-    /** @param {HTMLElement} node */
-    function useRef(node) {
-        if (typeof ref === "object" && ref && 'current' in ref) {
-            ref.current = node
-            return {
-                destroy() { ref.current = null }
-            }
+        } else {
+            // console.time("dispatchSizeChange_" + uniqueKey)
+            dispatch("resize", detail)
         }
     }
+
+    // /** @param {HTMLElement} node - use:useRef */
+    // function useRef(node) {
+    //     if (typeof ref === "object" && ref && 'current' in ref) {
+    //         ref.current = node
+    //         return {
+    //             destroy() { ref.current = null }
+    //         }
+    //     }
+    // }
 
     $: node = itemElement
 
@@ -111,7 +125,6 @@
   <svelte:element
     this={tagName}
     bind:this={itemElement}
-    use:useRef
     id="{nameSpace}-key-{uniqueKey}"
     class={joinClassNames(
         `${nameSpace}__${type}`,

@@ -82,6 +82,11 @@
 
     export let keepsBehaviour = defaults.keepsBehaviour
 
+    /** Dispatching custom rezise events from the item's resize observer
+     * (This may have a slight negative impact on performance.)
+    */
+    export let dispatchResizeEvents = false
+
 
     /** @return {('scrollLeft'|'scrollTop')} */
     const getScrolltDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
@@ -476,11 +481,11 @@
         return data.map((dataSource) => dataSource[key])
     }
 
-    /**
-     * @param {import('./index').TypeResizeEvent | CustomEvent<any>} e
-    */
-    function onItemResized(e) {
-        const {id, size, type} = e.detail
+
+    /** @type {import('./index').TypeResizeFnPassive} */
+    function onItemResizedPassive(detail, _native = false) {
+        const {id, size, type} = detail
+        // !_native && console.timeEnd("onItemResizedPassive_" + id)
 
         if (type === "item") {
             virtual.saveSize(id, size)
@@ -491,6 +496,15 @@
                 virtual.updateParam("slotFooterSize", size)
             }
         }
+    }
+
+
+    /**
+     * @param {import('./index').TypeResizeEvent | CustomEvent<any>} e
+    */
+    function onItemResized(e) {
+        // console.timeEnd("dispatchSizeChange_" + e.detail.id)
+        onItemResizedPassive(e.detail, true)
     }
 
 
@@ -651,6 +665,7 @@
 
     // window.virtual = virtual
 
+
 </script>
 
 <svelte:window on:scroll={onDocumentScroll} on:resize={onWindowResize} />
@@ -686,7 +701,8 @@
                 tagName={tableView ? "thead" : "div"}
                 style={headerSlotStyle({tableView, isHorizontal, pageMode}, range)}
                 {...propsHeaderSlot}
-                on:resize={onItemResized}
+                on:resize={dispatchResizeEvents ? onItemResized : null}
+                onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
                 nameSpace="{nameSpace}"
                 type="slot"
                 uniqueKey="header"
@@ -695,6 +711,7 @@
             </Item>
         {/if}
 
+        <!-- list -->
         <svelte:element
             role={tableView ? null : "listbox"}
             {...propsListDstructed.restProps}
@@ -703,6 +720,7 @@
             class={joinClassNames(`${nameSpace}__list`, propsListDstructed.className)}
         >
             {#if range}
+                <!-- top spacer -->
                 <svelte:element
                     class="{nameSpace}__spacer {nameSpace}__spacer-top"
                     this={tableView ? 'tr' : 'div'}
@@ -710,6 +728,7 @@
                 />
             {/if}
 
+            <!-- list items -->
             {#each displayItems as dataItem (dataItem[key])}
                 {@const index = data.indexOf(dataItem)}
                 <Item
@@ -722,7 +741,8 @@
                     index={index}
                     className={propsItemDstructed.className}
                     nameSpace="{nameSpace}"
-                    on:resize={onItemResized}
+                    on:resize={dispatchResizeEvents ? onItemResized : null}
+                    onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
                     uniqueKey={dataItem[key]}
                     horizontal={isHorizontal}
                     type="item"
@@ -732,13 +752,15 @@
             {/each}
 
             {#if displayItems.length === 0}
+                <!--Empty item -->
                 <Item
                     tagName={tableView ? "tr" : "div"}
                     style={itemStyle({tableView, isHorizontal, pageMode}, range)}
                     {...propsItemDstructed.restProps}
                     className={propsItemDstructed.className}
                     nameSpace="{nameSpace}"
-                    on:resize={onItemResized}
+                    on:resize={dispatchResizeEvents ? onItemResized : null}
+                    onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
                     uniqueKey="empty"
                     horizontal={isHorizontal}
                     type="item"
@@ -748,6 +770,7 @@
             {/if}
 
             {#if range}
+                <!-- bttom spacer -->
                 <svelte:element
                     class="{nameSpace}__spacer {nameSpace}__spacer-bottom"
                     this={tableView ? 'tr' : 'div'}
@@ -761,7 +784,8 @@
                 tagName={tableView ? "tfoot" : "div"}
                 style={footerSlotStyle({tableView, isHorizontal, pageMode}, range)}
                 {...propsFooterSlot}
-                on:resize={onItemResized}
+                on:resize={dispatchResizeEvents ? onItemResized : null}
+                onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
                 type="slot"
                 uniqueKey="footer"
             >

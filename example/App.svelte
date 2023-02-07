@@ -124,8 +124,8 @@
     let lastHorizontalMode = horizontalMode
 
     $: {
-        // TODO: there is a calculation bug when switching immediately between
-        // horizontal and vertical mode. Should be fixed later, until then here is a page reload...
+        // TODO: there is a calculation bug when switching between
+        // horizontal and vertical mode without page reload.
         if (horizontalMode !== lastHorizontalMode) {
             lastHorizontalMode = horizontalMode
             window.location.reload()

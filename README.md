@@ -175,6 +175,7 @@ More examples available in `example` folder
 |*~~offset~~ scrollPos|number|`0`|scroll position|
 |topThreshold|number|`0`|The threshold to emit `top` event, attention to multiple calls.|
 |bottomThreshold|number|`0`|The threshold to emit `bottom` event, attention to multiple calls.|
+|dispatchResizeEvents|boolean|`false`|Dispatching custom rezise events from the item's resize observer (may have a slight negative impact on performance.)|
 |*propsRoot|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of root element|
 |*propsList|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of list element|
 |*propsItem|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of item element|
