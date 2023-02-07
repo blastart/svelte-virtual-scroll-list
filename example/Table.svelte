@@ -136,8 +136,7 @@
         padding: 10px 5px;
         box-sizing: border-box;
     }
-
-    .vs :global(thead .cell-inner)  {
+    th .cell-inner {
         padding-top: 15px;
         padding-top: 15px;
     }

@@ -322,7 +322,11 @@ class Virtual {
     range = Object.create(null)
 
     // TODO: this might be published as a param value
-    keepsDecreasingTolerance = 1
+    /**
+     * in keepsBehaviour: AUTO_ADJUST mode,
+     * number of elements that can be tolerated before reducing the "keeps" value
+     */
+    keepsDecreasingTolerance = 2
 
     lastAverage = {
         start: 0,

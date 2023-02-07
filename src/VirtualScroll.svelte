@@ -724,6 +724,7 @@
             {#if range}
                 <!-- top spacer -->
                 <svelte:element
+                    aria-hidden="true"
                     class="{nameSpace}__spacer {nameSpace}__spacer-top"
                     this={tableView ? 'tr' : 'div'}
                     style={`${isHorizontal ? 'width' : 'height'}: ${range.padFront}px`}
@@ -774,6 +775,7 @@
             {#if range}
                 <!-- bottom spacer -->
                 <svelte:element
+                    aria-hidden="true"
                     class="{nameSpace}__spacer {nameSpace}__spacer-bottom"
                     this={tableView ? 'tr' : 'div'}
                     style={`${isHorizontal ? 'width' : 'height'}: ${range.padBehind}px`}
