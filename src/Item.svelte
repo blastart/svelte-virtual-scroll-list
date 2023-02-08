@@ -88,11 +88,11 @@
         }
     })
 
-    const shapeKey = horizontal ? "offsetWidth" : "offsetHeight"
+    const offsetKey = horizontal ? "offsetWidth" : "offsetHeight"
 
 
     function dispatchSizeChange() {
-        const size = itemElement ? itemElement[shapeKey] : 0
+        const size = itemElement ? itemElement[offsetKey] : 0
         if (size === previousSize) return
 
         previousSize = size

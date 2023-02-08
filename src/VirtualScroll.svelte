@@ -189,8 +189,7 @@
 
     /** @param {keyof HTMLElement} key - key of HTMLElement */
     function getScrollableKeyValue(key) {
-        if (!browser) return 0
-        if (!key) return undefined
+        if (!browser || !key) return undefined
 
         /** @type {unknown} */
         let value
@@ -299,6 +298,8 @@
 
     /** @type {(index: number) => void} */
     export function scrollToIndex(index) {
+        if (typeof index !== "number") return
+
         if (index >= data.length - 1) {
             scrollToBottom()
         } else {
@@ -665,7 +666,9 @@
 
     // window.virtual = virtual
 
-
+    // Sveltekit hoist bug: when rendering ssr, variables defined in each block are initially undefined
+    let index = 0
+    let dataItem = null
 </script>
 
 <svelte:window on:scroll={onDocumentScroll} on:resize={onWindowResize} />
@@ -750,7 +753,7 @@
                     horizontal={isHorizontal}
                     type="item"
                 >
-                    <slot {index} data={dataItem} slotData={slotData} />
+                    <slot index={index} data={dataItem} slotData={slotData} />
                 </Item>
             {/each}
 
