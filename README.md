@@ -38,9 +38,10 @@ or
 </script>
 <div class="vs">
     <VirtualScroll
-            data={items}
-            key="id"
-            let:data
+        data={items}
+        key="id"
+        let:data
+        let:index
     >
         <div slot="empty">
             no item to display
@@ -49,7 +50,7 @@ or
             This is a header set via slot
         </div>
         <div>
-            {data.text}
+            {items[index].text}
         </div>
         <div slot="footer">
             This is a footer set via slot
@@ -82,11 +83,12 @@ or
 </script>
 <div class="vs">
     <VirtualScroll
-            data={items}
-            key="id"
-            tableView={true}
-            let:data
-            pageMode={true}
+        data={items}
+        key="id"
+        tableView={true}
+        let:index
+        let:data
+        pageMode={true}
     >
         <!-- empty text -->
         <th slot="empty" colspan={cells.length}>
@@ -104,7 +106,7 @@ or
         {#each cells as cell (cell.prop)}
             <td>
                 <div class="cell-inner">
-                    {data[cell.prop]}
+                    {items[index][cell.prop]}
                 </div>
             </td>
         {/each}

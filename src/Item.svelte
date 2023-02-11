@@ -129,6 +129,7 @@
     class={joinClassNames(
         `${nameSpace}__${type}`,
         `${nameSpace}__${type}--${uniqueKey}`,
+        typeof index === "number" ? `${nameSpace}__${type}--${index % 2 === 0 ? "even" : "odd"}` : null,
         className
     )}
     data-item-key="{uniqueKey}"
