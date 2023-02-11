@@ -104,8 +104,8 @@
     /** @type  {import('./index').TypeDataItem[]} */
     let displayItems = []
 
-    /** @type {import('./virtual').TypeRange | null} */
-    let range = null
+    /** @type {import('./virtual').TypeRange} */
+    let range
 
     /** create data to pass to each slot <slot let:slotData /> */
     const getSlotData = () => ({
@@ -149,7 +149,8 @@
                     start: rng.start,
                     end: rng.end,
                     irlEnd: rng.end + 1,
-                    dataLength: data.length
+                    dataLength: data.length,
+                    slotData
                 })
         }
         tick().then(() => afterRender(getClientSize()))
@@ -260,8 +261,8 @@
                     ? (rect.left + defaultView.pageXOffset)
                     : (rect.top + defaultView.pageYOffset)
 
-                offset = Math.round(offsetRaw * 10) / 10
-                // offset = offsetRaw
+                // offset = Math.round(offsetRaw * 10) / 10
+                offset = offsetRaw
             }
 
             if (offset === lastOffset) return
@@ -335,8 +336,9 @@
 
 
     /**
+     * praram index available only for items
      * @typedef {(
-     *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean},
+     *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean, index?: number },
      *  range: import('./virtual').TypeRange | null) => string
      * } TypeStyleCallback
      */
@@ -360,9 +362,11 @@
     /** @type {TypeStyleCallback} returns the style of root elem. */
     export let rootStyle = ({tableView, isHorizontal, pageMode}) => {
         const cssProps = [
-            `height: ${pageMode || tableView ? "auto" : "inherit"}`,
             'max-width: 100%'
         ]
+        if (!pageMode && !tableView) {
+            cssProps.push('height: inherit')
+        }
         if (!tableView) {
             cssProps.push(
                 isHorizontal ? 'overflow-x: auto' : 'overflow-y: auto',
@@ -400,6 +404,8 @@
 
     /** @type {TypeStyleCallback} returns the style of header slot */
     export let itemStyle = () => {
+
+
         return ''
     }
 
@@ -666,9 +672,11 @@
 
     // window.virtual = virtual
 
-    // Sveltekit hoist bug: when rendering ssr, variables defined in each block are initially undefined
-    let index = 0
-    let dataItem = null
+    // Sveltekit hoisting bug: when rendering via ssr, variables defined in each block are initially undefined
+    // eslint-disable-next-line
+    const index = 0
+    // eslint-disable-next-line
+    const dataItem = null
 </script>
 
 <svelte:window on:scroll={onDocumentScroll} on:resize={onWindowResize} />
@@ -741,7 +749,7 @@
                     aria-setsize={data.length}
                     aria-posinset={index + 1}
                     role={tableView ? null : "listitem"}
-                    style={itemStyle({tableView, isHorizontal, pageMode}, range)}
+                    style={itemStyle({tableView, isHorizontal, pageMode, index}, range)}
                     {...propsItemDstructed.restProps}
                     tagName={tableView ? "tr" : propsItemDstructed.tagName || "div"}
                     index={index}
@@ -753,7 +761,7 @@
                     horizontal={isHorizontal}
                     type="item"
                 >
-                    <slot index={index} data={dataItem} slotData={slotData} />
+                    <slot index={index} data={dataItem} range={range} slotData={slotData} />
                 </Item>
             {/each}
 
