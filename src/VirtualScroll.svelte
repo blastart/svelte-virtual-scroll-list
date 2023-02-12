@@ -675,7 +675,7 @@
 
     // create a global variable named window._virtual_scroll with the virtual list instance and getSlotData fn
     const windowNs =  '_' + defaultNameSpace.replace(/[-\s]/g, '_')
-    if (debug && debug.others.storeAsGlobal && browser && !window[windowNs]) {
+    if (debug && debug?.others?.storeAsGlobal && browser && !window[windowNs]) {
         window[windowNs] = { virtual, getSlotData }
     }
 
