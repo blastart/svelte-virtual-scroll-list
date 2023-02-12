@@ -502,6 +502,9 @@
             } else if (id === "footer") {
                 virtual.updateParam("slotFooterSize", size)
             }
+            else if (id === "empty") {
+                // do nothing
+            }
         }
     }
 
@@ -670,7 +673,12 @@
         }
     }
 
-    // window.virtual = virtual
+    // create a global variable named window._virtual_scroll with the virtual list instance and getSlotData fn
+    const windowNs =  '_' + defaultNameSpace.replace(/[-\s]/g, '_')
+    if (debug && debug.others.storeAsGlobal && browser && !window[windowNs]) {
+        window[windowNs] = { virtual, getSlotData }
+    }
+
 
     // Sveltekit hoisting bug: when rendering via ssr, variables defined in each block are initially undefined
     // eslint-disable-next-line
@@ -777,7 +785,7 @@
                     onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
                     uniqueKey="empty"
                     horizontal={isHorizontal}
-                    type="item"
+                    type="slot"
                 >
                     <slot name="empty" slotData={slotData} />
                 </Item>

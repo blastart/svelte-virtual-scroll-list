@@ -41,7 +41,7 @@ import VirtualScroll from "./VirtualScroll.svelte"
  */
 
 
-/** @typedef {import('./virtual').TypeDebugOptions & { others?: Record<string, any>}} TypeDebugVirtualScroll */
+/** @typedef {import('./virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */
 
 export {VirtualScroll}
 export default VirtualScroll

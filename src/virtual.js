@@ -678,7 +678,6 @@ class Virtual {
         if (!this.param) return
 
         this.sizes.set(id, size)
-
         // we assume size type is fixed at the beginning and remember first size value
         // if there is no size value different from this at next coming saving
         // we think it's a fixed size list, otherwise is dynamic size list
@@ -686,6 +685,9 @@ class Virtual {
             this.fixedSizeValue = size
             this.calcType = CALC_TYPE.FIXED
         } else if (this.calcType === CALC_TYPE.FIXED && this.fixedSizeValue !== size) {
+            logInfo && console.info('info: saveSize()', 'size type changed from fixed to dynamic', {
+                id, prevSize: this.fixedSizeValue, newSize: size
+            })
             this.calcType = CALC_TYPE.DYNAMIC
             this.fixedSizeValue = 0
         }
