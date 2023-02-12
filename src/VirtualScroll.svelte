@@ -675,10 +675,9 @@
 
     // create a global variable named window._virtual_scroll with the virtual list instance and getSlotData fn
     const windowNs =  '_' + defaultNameSpace.replace(/[-\s]/g, '_')
-    if (debug && debug?.others?.storeAsGlobal && browser && !window[windowNs]) {
+    if (browser && debug && !window[windowNs] && debug?.others?.storeAsGlobal) {
         window[windowNs] = { virtual, getSlotData }
     }
-
 
     // Sveltekit hoisting bug: when rendering via ssr, variables defined in each block are initially undefined
     // eslint-disable-next-line
