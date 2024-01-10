@@ -501,8 +501,7 @@
                 virtual.updateParam("slotHeaderSize", size)
             } else if (id === "footer") {
                 virtual.updateParam("slotFooterSize", size)
-            }
-            else if (id === "empty") {
+            } else if (id === "empty") {
                 // do nothing
             }
         }
@@ -675,7 +674,9 @@
 
     // create a global variable named window._virtual_scroll with the virtual list instance and getSlotData fn
     const windowNs =  '_' + defaultNameSpace.replace(/[-\s]/g, '_')
-    if (browser && debug && !window[windowNs] && debug?.others?.storeAsGlobal) {
+    // @ts-ignore
+    if (browser && debug && window[windowNs] && debug?.others?.storeAsGlobal) {
+        // @ts-ignore
         window[windowNs] = { virtual, getSlotData }
     }
 
