@@ -28,7 +28,7 @@
         return new_items
     }
 
-    /** @type {import('./components/MultiSelect.svelte').Item[]} */
+    /** @type {import('./components/MultiSelect.svelte').TypeItem[]} */
     const items = getItems(10000)
     /** @type {string} comma separated list of selected items, or an array of strings */
     let value = items.slice(0, 3).map(item => item.value).join(valueSeparator)

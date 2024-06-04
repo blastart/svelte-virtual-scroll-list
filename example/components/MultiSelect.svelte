@@ -1,5 +1,5 @@
 <script context="module">
-    /** @typedef {{text: string, value: string, selected: boolean }} Item */
+    /** @typedef {{text: string, value: string, selected: boolean }} TypeItem */
 </script>
 
 <script>
@@ -26,7 +26,7 @@
     /** @type {string} used as separator for the "value" */
     export let valueSeparator = ','
 
-    /** @type {Item[]} option items {text: string, value: string, selected: boolean } */
+    /** @type {TypeItem[]} option items {text: string, value: string, selected: boolean } */
     export let items = []
 
     /** @type {string | undefined} */
@@ -42,7 +42,7 @@
     export let filterValue = ''
 
 
-    /** @type {Item[]} */
+    /** @type {TypeItem[]} */
     let filteredItems = items
 
     /** @type {VirtualScroll} */
@@ -246,8 +246,6 @@
     </div>
 </div>
 
-
-
 <style>
     .vs-multiselect-wrapper :global(.virtual-scroll--view-list .virtual-scroll__item ) {
         padding: 0px;
@@ -257,7 +255,6 @@
         font-weight: bold;
         padding: 0.5rem 1rem;
         background-color: #f9f9f9;
-
     }
 
     .vs-multiselect-filter-selections {

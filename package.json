@@ -1,56 +1,59 @@
 {
-  "name": "@blastart/svelte-virtual-scroll-list",
-  "description": "Svelte lib for virtualizing lists and tables",
-  "author": {
-    "name": "blastart",
-    "url": "https://github.com/blastart"
-  },
-  "keywords": [
-    "svelte",
-    "virtual",
-    "virtual-list",
-    "virtual-table",
-    "virtual-scroll"
-  ],
-  "version": "2.0.0-beta.1",
-  "scripts": {
-    "build": "rollup -c rollup/rollup.config.js",
-    "build:dev": "rollup -c rollup/rollup.config.dev.js",
-    "dev": "rollup -c rollup/rollup.config.dev.js -w",
-    "start:dev": "sirv example/public --no-clear"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/blastart/svelte-virtual-scroll-list.git"
-  },
-  "files": [
-    "lib",
-    "src",
-    "types"
-  ],
-  "devDependencies": {
-    "@babel/core": "^7.20.5",
-    "@babel/eslint-parser": "^7.19.1",
-    "@rollup/plugin-node-resolve": "^13.3.0",
-    "@tsconfig/svelte": "^3.0.0",
-	"@types/eslint": "8.56.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-svelte": "^2.35.1",
-    "rollup": "^2.75.7",
-    "rollup-plugin-css-only": "^3.1.0",
-    "rollup-plugin-livereload": "^2.0.5",
-    "rollup-plugin-svelte": "^7.1.5",
-    "sirv-cli": "^2.0.2",
-    "sveld": "^0.17.2",
-    "svelte": "^4.2.7",
-    "svelte-check": "^3.6.0",
-    "svelte-eslint-parser": "^0.33.1",
-    "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
-    "svelte": "^3.0.0"
-  },
-  "svelte": "./src/index.js",
-  "module": "./lib/index.mjs",
-  "types": "./types/index.d.ts"
+    "name": "@blastart/svelte-virtual-scroll-list",
+    "description": "Svelte lib for virtualizing lists and tables",
+    "author": {
+        "name": "blastart",
+        "url": "https://github.com/blastart"
+    },
+    "keywords": [
+        "svelte",
+        "virtual",
+        "virtual-list",
+        "virtual-table",
+        "virtual-scroll"
+    ],
+    "version": "2.0.0-beta.1",
+    "scripts": {
+        "build": "rollup -c rollup/rollup.config.js",
+        "build:dev": "rollup -c rollup/rollup.config.dev.js",
+        "dev": "rollup -c rollup/rollup.config.dev.js -w",
+        "start:dev": "sirv example/public --no-clear"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/blastart/svelte-virtual-scroll-list.git"
+    },
+    "files": [
+        "lib",
+        "src",
+        "types"
+    ],
+    "devDependencies": {
+        "@babel/core": "^7.20.5",
+        "@babel/eslint-parser": "^7.19.1",
+        "@rollup/plugin-node-resolve": "^13.3.0",
+        "@tsconfig/svelte": "^3.0.0",
+        "@types/eslint": "8.56.0",
+        "eslint": "^8.56.0",
+        "eslint-plugin-svelte": "^2.35.1",
+        "rollup": "^2.75.7",
+        "rollup-plugin-css-only": "^3.1.0",
+        "rollup-plugin-livereload": "^2.0.5",
+        "rollup-plugin-svelte": "^7.1.5",
+        "sirv-cli": "^2.0.2",
+        "sveld": "^0.17.2",
+        "svelte": "^4.2.7",
+        "svelte-check": "^3.6.0",
+        "svelte-eslint-parser": "^0.33.1",
+        "svelte-preprocess": "^5.1.4",
+        "typescript": "^5.0.0"
+    },
+    "peerDependencies": {
+        "svelte": "^3.0.0"
+    },
+    "svelte": "./src/index.js",
+    "moduleOut": "./lib/",
+    "types": "./types/index.d.ts",
+    "componentsOut": "./lib/components.mjs",
+    "componentsIn": "./example/components/index.js"
 }

@@ -185,10 +185,10 @@
 
 
     /** @type {HTMLElement} for scrollable tables **/
-    let wrapper
+    let wrapperRef
 
     /** @type {HTMLElement} */
-    let root
+    let rootRef
 
 
     const dispatch = createEventDispatcher()
@@ -225,9 +225,9 @@
         if (pageMode) {
             value = document.documentElement[key] || document.body[key]
         } else if (tableView) {
-            value =  wrapper ? wrapper[key] : 0
+            value =  wrapperRef ? wrapperRef[key] : 0
         } else {
-            value = root ? root[key] : 0
+            value = rootRef ? rootRef[key] : 0
         }
 
         return value
@@ -274,14 +274,14 @@
         let lastOffset = 0
 
         return function() {
-            if (!root || !browser) return
+            if (!rootRef || !browser) return
 
             let offset = 0
             let offsetRaw = 0
 
             if (pageMode) {
-                const rect = root.getBoundingClientRect()
-                const {defaultView = window} = root.ownerDocument
+                const rect = rootRef.getBoundingClientRect()
+                const {defaultView = window} = rootRef.ownerDocument
                 if (!defaultView) return
 
                 offsetRaw = isHorizontal
@@ -311,10 +311,10 @@
         if (pageMode) {
             document.body[scrollDirectionKey] = position
             document.documentElement[scrollDirectionKey] = position
-        } else if (tableView && wrapper) {
-            wrapper[scrollDirectionKey] = position
-        } else if (!tableView && root) {
-            root[scrollDirectionKey] = position
+        } else if (tableView && wrapperRef) {
+            wrapperRef[scrollDirectionKey] = position
+        } else if (!tableView && rootRef) {
+            rootRef[scrollDirectionKey] = position
         }
         triggerScroll()
     }
@@ -718,7 +718,7 @@
 <!-- Wrapper element -->
 <div class="{nameSpace}__wrapper"
     id={wrapperId}
-    bind:this={wrapper}
+    bind:this={wrapperRef}
     on:scroll={onWrapperScroll}
     style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
 >
@@ -740,7 +740,7 @@
             `${nameSpace}--${pageMode ? "page-mode" : "overflow-mode"}`,
             propsRootDestructed.className
         )}
-        bind:this={root}
+        bind:this={rootRef}
         on:scroll={onRootScroll}
     >
 

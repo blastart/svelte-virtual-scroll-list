@@ -44,6 +44,8 @@ export default {
         css({output: "bundle.css"}),
         resolve({
             browser: true,
+            exportConditions: ['svelte'],
+            extensions: ['.svelte'],
             dedupe: ["svelte"]
         }),
         !production && serve(),
