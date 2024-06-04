@@ -13,7 +13,7 @@
         "virtual-multiselect",
         "virtual-scroll"
     ],
-    "version": "2.0.0-beta.1",
+    "version": "2.0.0",
     "scripts": {
         "tgz": "npm version patch && yarn pack",
         "build": "rollup -c rollup/rollup.config.js",
