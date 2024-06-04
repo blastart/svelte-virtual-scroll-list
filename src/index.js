@@ -1,4 +1,6 @@
+
 import VirtualScroll from "./VirtualScroll.svelte"
+
 
 /**
  * @typedef {"item" | "slot"} TypeItemType

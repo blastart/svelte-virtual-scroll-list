@@ -1,5 +1,1 @@
-import MultiSelect from "./MultiSelect.svelte"
-
-export { MultiSelect }
-
-export default MultiSelect
+export { default as MultiSelect } from './MultiSelect.svelte'
