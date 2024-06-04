@@ -15,7 +15,8 @@
     ],
     "version": "2.0.1",
     "scripts": {
-        "tgz": "npm version patch && yarn pack",
+        "tgz": "npm version patch && yarn pack && node ./moveTGZs.js",
+        "release": "npm run build && npm version patch && yarn pack && node ./moveTGZs.js && git push --follow-tags",
         "build": "rollup -c rollup/rollup.config.js",
         "build:dev": "rollup -c rollup/rollup.config.dev.js",
         "dev": "rollup -c rollup/rollup.config.dev.js -w",
