@@ -36,5 +36,10 @@
 
 
 <div class="multiselect-example">
-    <MultiSelect {debug} {keeps} {behavior} {items} bind:value={value} {valueSeparator} valueByItemsIndex={true} />
+
+    <MultiSelect {debug} {keeps} {behavior} {items} bind:value={value} {valueSeparator} valueByItemsIndex={true}>
+       <slot slot="appDebugInfo" let:slotData>
+            <slot name="appDebugInfo" {slotData} />
+       </slot>
+    </MultiSelect>
 </div>
