@@ -2,7 +2,8 @@
     import SimpleList from "./SimpleList.svelte"
     import SimpleListStore from "./SimpleListStore.svelte"
     import InfiniteList from "./InfiniteList.svelte"
-    import {KEEPS_BEHAVIOUR, MIN_KEEPS, defaults} from "../src/virtual"
+    import MultiSelect from "./MultiSelectPage.svelte"
+    import {KEEPS_BEHAVIOR, MIN_KEEPS, defaults} from "../src/virtual"
     import {getParam, setParam, isNumInRange, parseJSON, useClickOutside} from "./apps.lib"
     // import PageList from "./PageList.svelte"
     import Table from "./Table.svelte"
@@ -13,6 +14,14 @@
     let pages = [
         {name: "Simple list", component: SimpleList},
         // {name: "Page mode", component: PageList},
+        {
+            name: "Multiselect",
+            component: MultiSelect,
+            stickyHeader: true,
+            horizontalModeNotSupported: true,
+            fixSizeNotSupported: true,
+            pageModeNotSupported: true
+        },
         {name: "Table", component: Table, horizontalModeNotSupported: true},
         {name: "ChangeableData", component: ChangeableData},
         {name: "SimpleListStore", component: SimpleListStore},
@@ -68,14 +77,14 @@
     const hideOtherOptions = () => showOtherOptions = false
 
 
-    const behaviors = Object.values(KEEPS_BEHAVIOUR)
+    const behaviors = Object.values(KEEPS_BEHAVIOR)
 
     let currentPage = getPageByName(getParam("page"))
     let horizontalMode = getParam("horizontal") === "1"
     let fixSize = getParam("fixSize") === "1"
     let pageMode = getParam("pageMode") ? getParam("pageMode") === "1" : true
     let keeps =  parseKeepsParam() || defaults.keeps
-    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : defaults.keepsBehaviour
+    let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : defaults.keepsBehavior
     let debug = validateDebug(parseJSON(getParam("debug")))
 
 
@@ -91,6 +100,10 @@
             setActivePage(page.name)
         }
     }
+
+    $: pageMode = currentPage.pageModeNotSupported !== true ? pageMode : false
+    $: horizontalMode = currentPage.horizontalModeNotSupported !== true ? horizontalMode : false
+    $: fixSize = currentPage.fixSizeNotSupported !== true ? fixSize : false
 
     $: {
         setParam("fixSize", fixSize ? "1" : "0")
@@ -116,7 +129,7 @@
 
     $: {
         void behavior
-        if (behavior !== KEEPS_BEHAVIOUR.AS_IS) {
+        if (behavior !== KEEPS_BEHAVIOR.AS_IS) {
             keeps = 10
         }
     }
@@ -156,35 +169,35 @@
 
                 <div class="view-modes">
                     <div style:max-width="100px" style="background: #333; margin-right: 5px">
-                        <label>
-                            <input type="checkbox" bind:checked={pageMode} /> pageMode
+                        <label title={currentPage.pageModeNotSupported ? "Page mode not available for this component" : ""}>
+                            <input name="pageMode" type="checkbox" bind:checked={pageMode} disabled={currentPage.pageModeNotSupported} /> pageMode
                         </label>
                         {#if pageMode}
                             <label class="wobble" title="for testing page offset changes">
-                                <input type="checkbox" bind:checked={testOffsetChange} />
+                                <input name="wobble" type="checkbox" bind:checked={testOffsetChange} disabled={currentPage.pageModeNotSupported} />
                                 {#if testOffsetChange}Stop wobbling{:else}wobble{/if}
                             </label>
                         {/if}
                     </div>
-                    <label>
-                        <input type="checkbox" bind:checked={horizontalMode} /> horizontal
+                    <label title={currentPage.horizontalModeNotSupported ? "Horizontal mode not available for this component" : ""}>
+                        <input name="horizontalMode" type="checkbox" bind:checked={horizontalMode} disabled={currentPage.horizontalModeNotSupported} /> horizontal
+                    </label>
+                    <label title={currentPage.fixSizeNotSupported ? "fixSize not available for this component" : ""}>
+                        <input name="fixSize" type="checkbox" bind:checked={fixSize} disabled={currentPage.fixSizeNotSupported}  /> fixSize
                     </label>
                     <label>
-                        <input  type="checkbox" bind:checked={fixSize} /> fixSize
-                    </label>
-                    <label>
-                        keeps <input style="width: 50px" maxlength="3" min="{MIN_KEEPS}" max="200" type="number" bind:value={keeps} />
+                        keeps <input name="keeps" style="width: 50px" maxlength="3" min="{MIN_KEEPS}" max="200" type="number" bind:value={keeps} />
                     </label>
                     <label>
                         behavior
-                        <select bind:value={behavior} style:width='100px'>
+                        <select  name="behavior" bind:value={behavior} style:width='100px'>
                             {#each behaviors as value}
                                 <option value={value}>{value}</option>
                             {/each}
                         </select>
                     </label>
                     <label style="opacity: 0.75; margin-left: auto;" title="Use history.pushState for navigation">
-                        <input type="checkbox" bind:checked={navPushState} /> pushState
+                        <input name="navPushState" type="checkbox" bind:checked={navPushState} /> pushState
                     </label>
 
                     <a class="source" href="https://github.com/v1ack/svelte-virtual-scroll-list/tree/master/example">Source</a>
@@ -195,6 +208,9 @@
             {#if horizontalMode && currentPage.horizontalModeNotSupported === true}
                 <b style="color: red">Table: horizontal view not supported</b>
             {/if}
+            {#if pageMode && currentPage.pageModeNotSupported === true}
+                <b style="color: red">Table: page node not supported</b>
+            {/if}
             <div class="other-ops" use:useClickOutside on:click_outside={hideOtherOptions}>
                 <button on:click={() => { showOtherOptions = !showOtherOptions }} class="other-ops__show-others">
                     {#if showOtherOptions}Hide{:else}Show{/if} debug options
@@ -202,16 +218,16 @@
                 {#if showOtherOptions}
                 <div class="other-ops__content">
                     <label>
-                        debug.logErrors <input disabled type="checkbox" bind:checked={debug.logErrors} />
+                        debug.logErrors <input  type="checkbox" name="debug.logErrors" bind:checked={debug.logErrors} />
                     </label>
                     <label title="0 - no log | 1 - log major info | 2 - log major & minor info">
-                        debug.info <input style:width="45px" bind:value={debug.info} type="number" min="0" max="2" maxlength="1">
+                        debug.info <input name="debug.info" style:width="45px" bind:value={debug.info} type="number" min="0" max="2" maxlength="1">
                     </label>
                     <label title="0 - no log | 1 - log major efficient improvements | 2 - log major & minor improvements">
-                        debug.efficiency <input style:width="45px" bind:value={debug.efficiency} type="number" min="0" max="2" maxlength="1">
+                        debug.efficiency <input name="debug.efficiency" style:width="45px" bind:value={debug.efficiency} type="number" min="0" max="2" maxlength="1">
                     </label>
                     <label>
-                        showKeeps <input type="checkbox" bind:checked={debug.others.showKeeps} />
+                        showKeeps <input name="showKeeps" type="checkbox" bind:checked={debug.others.showKeeps} />
                     </label>
                 </div>
                 {/if}
@@ -256,6 +272,10 @@
         color: var(--primary-color);
         white-space: nowrap;
     }
+    label:has(input:disabled) {
+        opacity: 0.5;
+    }
+
     label:hover {
         color: var(--hihglight-color);
     }
@@ -263,6 +283,7 @@
     label input {
         margin-bottom: 0;
     }
+
 
     .other-ops {
         position: relative;

@@ -12,7 +12,7 @@
     /** @type {number} */
     export let keeps
 
-    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOUR} */
+    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOR} */
     export let behavior
 
     const getItemId = createSequenceGenerator()
@@ -52,7 +52,7 @@
         debug={debug}
         data={items}
         keeps={keeps}
-        keepsBehaviour={behavior}
+        keepsBehavior={behavior}
         key="uniqueKey"
         pageMode={pageMode}
         isHorizontal={horizontalMode}

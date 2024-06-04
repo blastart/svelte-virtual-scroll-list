@@ -162,8 +162,8 @@ More examples available in `example` folder
 |key|string|`id`|Unique key for getting data from `data`|
 |*nameSpace|string|virtual-scroll|css BEM / event namespacing|
 |keeps|number|`30`|Count of rendered items|
-|*keepsBehaviour|string|as-is| **"as-is"** - uses the value set in params.<br /><br /> "**auto-increase**" - increments the value set in param.keeps until the rendered range becomes larger than the viewport.<br /><br /> "**auto-adjust**" - Increments/decrements the value set in params according to the size of the viewport. This may cause more rendering cycles, especially for non-fixed size elements, but it always renders a sufficient number of elements to fill the viewport|
-|*fillMaxSize|number|`undefined`| Maximum fill height, prevents infinite cycles if the parent element has no height set and keepBehaviour is enabled.|
+|*keepsBehavior|string|as-is| **"as-is"** - uses the value set in params.<br /><br /> "**auto-increase**" - increments the value set in param.keeps until the rendered range becomes larger than the viewport.<br /><br /> "**auto-adjust**" - Increments/decrements the value set in params according to the size of the viewport. This may cause more rendering cycles, especially for non-fixed size elements, but it always renders a sufficient number of elements to fill the viewport|
+|*fillMaxSize|number|`undefined`| Maximum fill height, prevents infinite cycles if the parent element has no height set and keepBehavior is enabled.|
 |*fillSizeMultiplier|boolean|2|Viewport multiplier. According to keepsBehavior, it increases the size of the viewport to be filled with elements in order to ensure smooth scrolling even when scrolling fast. The value of "keeps" increases in proportion to the viewport.|
 |*estimateSize|number \|<br />`(uniqueKey) => number`|50|Estimate size of each item, needs for smooth scrollbar.|
 |*buffer|number|undefined|items to render in addition to the keeps. Recommend for a third of keeps, but it is **strongly recommended to leave undefined**, because it will be calculated automatically from the value of keeps.|
@@ -177,7 +177,7 @@ More examples available in `example` folder
 |*~~offset~~ scrollPos|number|`0`|scroll position|
 |topThreshold|number|`0`|The threshold to emit `top` event, attention to multiple calls.|
 |bottomThreshold|number|`0`|The threshold to emit `bottom` event, attention to multiple calls.|
-|dispatchResizeEvents|boolean|`false`|Dispatching custom rezise events from the item's resize observer (may have a slight negative impact on performance.)|
+|dispatchResizeEvents|boolean|`false`|Dispatching custom resize events from the item's resize observer (may have a slight negative impact on performance.)|
 |*propsRoot|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of root element|
 |*propsList|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of list element|
 |*propsItem|<code>{className: '', tagName: "section", ...etc}</code>|{}|Props of item element|

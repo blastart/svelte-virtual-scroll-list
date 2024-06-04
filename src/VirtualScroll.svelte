@@ -12,6 +12,15 @@
     /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
     export let key = "id"
 
+    /** @type {string | null | undefined} Unique key for getting data from `data` */
+    export let id = null
+
+    /** @type {string | null | undefined} Unique key for getting data from `data` */
+    export let wrapperId = null
+
+    /** @type {string | null | undefined} Unique key for getting data from `data` */
+    export let rootId = null
+
     /** @type {string} css BEM / event namespacing */
     export let nameSpace = defaultNameSpace
 
@@ -80,16 +89,34 @@
     /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
-    export let keepsBehaviour = defaults.keepsBehaviour
+    export let keepsBehavior = defaults.keepsBehavior
 
-    /** Dispatching custom rezise events from the item's resize observer
+    /** @type {string | null | undefined} aria-role for item */
+    export let ariaControls = null
+
+    /** @type {string | null | undefined} aria-describedby */
+    export let ariaDescribedby = null
+
+    /** @type {string | null | undefined} aria-role */
+    export let ariaRole = "listbox"
+    /** @type {string | null | undefined} aria-role for item */
+    export let ariaRoleForItem = "listitem"
+
+    /** @type {string | null | undefined}  aria-label */
+    export let ariaLabel = null
+
+    /** @type {string | null}  aria-label for item */
+    export let ariaLabelForItem = null
+
+
+    /** Dispatching custom resize events from the item's resize observer
      * (This may have a slight negative impact on performance.)
     */
     export let dispatchResizeEvents = false
 
 
     /** @return {('scrollLeft'|'scrollTop')} */
-    const getScrolltDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
+    const getScrollDirectionKey = () => isHorizontal ? "scrollLeft" : "scrollTop"
 
 
     /**
@@ -125,7 +152,7 @@
     // TODO: reveal new properties from Virtual.param
     const virtual = new Virtual({
         keeps: keeps || undefined,
-        keepsBehaviour,
+        keepsBehavior,
         estimateSize,
         fillMaxSize,
         fillSizeMultiplier,
@@ -169,7 +196,7 @@
     /** Trigger a scroll event */
     export function triggerScroll() {
         dispatch("scroll", {
-            event: new CustomEvent(defaultNameSpace + '-scroll-tirgger'),
+            event: new CustomEvent(defaultNameSpace + '-scroll-trigger'),
             range: virtual.getRange()
         })
     }
@@ -210,7 +237,7 @@
     /** @type {() => number} scrollLeft or scrollTop depending on isHorizontal */
     export function getScrollPos() {
         if (!browser) return 0
-        const pos = getScrollableKeyValue(getScrolltDirectionKey())
+        const pos = getScrollableKeyValue(getScrollDirectionKey())
         return typeof pos === "number" ? pos : 0
     }
 
@@ -279,15 +306,15 @@
     /** @type {(position: number) => void} - scroll to position by px */
     export function scrollTo(position) {
         if (!browser) return
-        const scrolltDirectionKey = getScrolltDirectionKey()
+        const scrollDirectionKey = getScrollDirectionKey()
 
         if (pageMode) {
-            document.body[scrolltDirectionKey] = position
-            document.documentElement[scrolltDirectionKey] = position
+            document.body[scrollDirectionKey] = position
+            document.documentElement[scrollDirectionKey] = position
         } else if (tableView && wrapper) {
-            wrapper[scrolltDirectionKey] = position
+            wrapper[scrollDirectionKey] = position
         } else if (!tableView && root) {
-            root[scrolltDirectionKey] = position
+            root[scrollDirectionKey] = position
         }
         triggerScroll()
     }
@@ -314,7 +341,6 @@
     /**
      * @param {Event | null} [_e] - event if called by event handler
      * @param {number} [_retries] - retry count to avoid possible infinite loop
-     * @retrun {() => void}
      */
     export function scrollToBottom(_e, _retries = data.length) {
         const scrollEnd = getScrollSize()
@@ -336,7 +362,7 @@
 
 
     /**
-     * praram index available only for items
+     * param index available only for items
      * @typedef {(
      *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean, index?: number },
      *  range: import('./virtual').TypeRange | null) => string
@@ -568,7 +594,7 @@
     const getChangedProps = (() => {
         /** @return {Object<string, unknown>} */
         const getCurrent = () => ({
-            isHorizontal, tableView, pageMode, keepsBehaviour, data, keeps, buffer,
+            isHorizontal, tableView, pageMode, keepsBehavior, data, keeps, buffer,
             estimateSize, fillMaxSize, fillSizeMultiplier, autoAutoUpdateAverageSize,
             slotHeaderSize, slotFooterSize
         })
@@ -641,9 +667,9 @@
         // data passed to all slots: <slot let:slotData />
         slotData = getSlotData()
     }
-    $: propsRootDstructed = destructElementProps(propsRoot)
-    $: propsListDstructed = destructElementProps(propsList)
-    $: propsItemDstructed = destructElementProps(propsItem)
+    $: propsRootDestructed = destructElementProps(propsRoot)
+    $: propsListDestructed = destructElementProps(propsList)
+    $: propsItemDestructed = destructElementProps(propsItem)
     $: {
         void data
         void isHorizontal
@@ -652,7 +678,7 @@
         void tableView
         void buffer
         void keeps
-        void keepsBehaviour
+        void keepsBehavior
         void estimateSize
         void fillMaxSize
         void fillSizeMultiplier
@@ -691,6 +717,7 @@
 
 <!-- Wrapper element -->
 <div class="{nameSpace}__wrapper"
+    id={wrapperId}
     bind:this={wrapper}
     on:scroll={onWrapperScroll}
     style={wrapperStyle({tableView, isHorizontal, pageMode}, range)}
@@ -702,15 +729,16 @@
 
     <!-- Root element -->
     <svelte:element
-        {...propsRootDstructed.restProps}
+        {...propsRootDestructed.restProps}
+        id={rootId}
         style={rootStyle({tableView, isHorizontal, pageMode}, range)}
-        this={tableView ? 'table' : propsRootDstructed.tagName || 'div'}
+        this={tableView ? 'table' : propsRootDestructed.tagName || 'div'}
         class={joinClassNames(
             nameSpace,
             `${nameSpace}--${isHorizontal ? "horizontal" : "vertical"}`,
             `${nameSpace}--view-${tableView ? "table" : "list"}`,
             `${nameSpace}--${pageMode ? "page-mode" : "overflow-mode"}`,
-            propsRootDstructed.className
+            propsRootDestructed.className
         )}
         bind:this={root}
         on:scroll={onRootScroll}
@@ -734,11 +762,15 @@
 
         <!-- list -->
         <svelte:element
-            role={tableView ? null : "listbox"}
-            {...propsListDstructed.restProps}
+            role={tableView ? null : ariaRole}
+            id={id}
+            aria-controls={ariaControls}
+            aria-describedby={ariaDescribedby}
+            aria-label={ariaLabel}
+            {...propsListDestructed.restProps}
             style={listStyle({tableView, isHorizontal, pageMode}, range)}
-            this={tableView ? 'tbody' : propsListDstructed.tagName || 'div'}
-            class={joinClassNames(`${nameSpace}__list`, propsListDstructed.className)}
+            this={tableView ? 'tbody' : propsListDestructed.tagName || 'div'}
+            class={joinClassNames(`${nameSpace}__list`, propsListDestructed.className)}
         >
             {#if range}
                 <!-- top spacer -->
@@ -756,12 +788,13 @@
                 <Item
                     aria-setsize={data.length}
                     aria-posinset={index + 1}
-                    role={tableView ? null : "listitem"}
+                    aria-label={ariaLabelForItem}
+                    role={tableView ? null : ariaRoleForItem}
                     style={itemStyle({tableView, isHorizontal, pageMode, index}, range)}
-                    {...propsItemDstructed.restProps}
-                    tagName={tableView ? "tr" : propsItemDstructed.tagName || "div"}
+                    {...propsItemDestructed.restProps}
+                    tagName={tableView ? "tr" : propsItemDestructed.tagName || "div"}
                     index={index}
-                    className={propsItemDstructed.className}
+                    className={propsItemDestructed.className}
                     nameSpace="{nameSpace}"
                     on:resize={dispatchResizeEvents ? onItemResized : null}
                     onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}
@@ -778,8 +811,8 @@
                 <Item
                     tagName={tableView ? "tr" : "div"}
                     style={itemStyle({tableView, isHorizontal, pageMode}, range)}
-                    {...propsItemDstructed.restProps}
-                    className={propsItemDstructed.className}
+                    {...propsItemDestructed.restProps}
+                    className={propsItemDestructed.className}
                     nameSpace="{nameSpace}"
                     on:resize={dispatchResizeEvents ? onItemResized : null}
                     onItemResizedPassive={dispatchResizeEvents ? null : onItemResizedPassive}

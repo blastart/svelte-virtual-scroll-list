@@ -111,12 +111,12 @@ export const browser = typeof window !== "undefined"
  * @typedef {number | ((key: TypeUniqueId) => number)} TypeEstimateSize
  */
 /**
- * behaviour of the keeps calculation
- * @typedef {KEEPS_BEHAVIOUR} TypeKeepsBehaviour - keepsBehaviour
+ * behavior of the keeps calculation
+ * @typedef {KEEPS_BEHAVIOR} TypeKeepsBehavior - keepsBehavior
  */
 /**
  * Maximum fill height, prevents infinite cycles if the parent
- * element has no height set and keepBehaviour is enabled.
+ * element has no height set and keepBehavior is enabled.
  * @typedef {number} TypeFillMaxSize - fillMaxSize
  */
 /**
@@ -127,7 +127,7 @@ export const browser = typeof window !== "undefined"
  * @typedef {number} TypeFillSizeMultiplier - fillSizeMultiplier
  */
 /**
- * @typedef {number} TypeSlotHeaderSize - slotHeaderSize  ize of the header slot
+ * @typedef {number} TypeSlotHeaderSize - slotHeaderSize size of the header slot
  */
 /**
  * @typedef {number} TypeSlotFooterSize - slotFooterSize size of the footer slot
@@ -156,7 +156,7 @@ export const browser = typeof window !== "undefined"
  * buffer: TypeBuffer,
  * keeps: TypeKeeps,
  * estimateSize: TypeEstimateSize,
- * keepsBehaviour: TypeKeepsBehaviour,
+ * keepsBehavior: TypeKeepsBehavior,
  * fillMaxSize: TypeFillMaxSize,
  * fillSizeMultiplier: TypeFillSizeMultiplier,
  * slotHeaderSize: TypeSlotHeaderSize,
@@ -234,7 +234,7 @@ const LEADING_BUFFER = 1
 export const MIN_KEEPS = 5
 
 /**
- * behaviour options to calculate the number of items to render
+ * behavior options to calculate the number of items to render
  * @readonly
  * @enum {string}
  * @property {string} AS_IS         - uses the value set in params.
@@ -248,7 +248,7 @@ export const MIN_KEEPS = 5
  *                                    renders a sufficient number of elements to fill the viewport
  *
 */
-export const KEEPS_BEHAVIOUR = {
+export const KEEPS_BEHAVIOR = {
     AS_IS: "as-is",
     AUTO_INCREASE: "auto-increase",
     AUTO_ADJUST: "auto-adjust"
@@ -263,7 +263,7 @@ const logMsgs = {
 /** @type {TypeParamOptional} */
 export const defaults = {
     keeps: 30,
-    keepsBehaviour: KEEPS_BEHAVIOUR.AUTO_ADJUST,
+    keepsBehavior: KEEPS_BEHAVIOR.AUTO_ADJUST,
     slotHeaderSize: 0,
     slotFooterSize: 0,
     pageModeOffset: 0,
@@ -290,7 +290,7 @@ class Virtual {
 
     fixedSizeValue = 0
 
-    /** the number of items to render in addition to the keeps based on the keepsBehaviour */
+    /** the number of items to render in addition to the keeps based on the keepsBehavior */
     keepsCalculated = 0
 
 
@@ -323,7 +323,7 @@ class Virtual {
 
     // TODO: this might be published as a param value
     /**
-     * in keepsBehaviour: AUTO_ADJUST mode,
+     * in keepsBehavior: AUTO_ADJUST mode,
      * number of elements that can be tolerated before reducing the "keeps" value
      */
     keepsDecreasingTolerance = 2
@@ -559,8 +559,8 @@ class Virtual {
                 if (Array.isArray(value)) this.setUniqueIds(value)
                 break
             }
-            case "keepsBehaviour": {
-                if (typeof value === "string") this.setKeepsBehaviour(value)
+            case "keepsBehavior": {
+                if (typeof value === "string") this.setKeepsBehavior(value)
                 break
             }
             case "pageModeOffset": {
@@ -610,11 +610,11 @@ class Virtual {
     }
 
     /**
-     * @returns {number} calculated buffer value based on current keepsBehaviour calculation
+     * @returns {number} calculated buffer value based on current keepsBehavior calculation
     */
     getBufferCalculated(minBuffer = LEADING_BUFFER) {
-        if (!this.param || this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AS_IS) {
-            // if keepsBehaviour is "as-is", we don't calculate buffer
+        if (!this.param || this.param.keepsBehavior === KEEPS_BEHAVIOR.AS_IS) {
+            // if keepsBehavior is "as-is", we don't calculate buffer
             return this.getBuffer()
         }
         const keeps = this.getKeepsCalculated()
@@ -635,29 +635,29 @@ class Virtual {
         return Math.max(this.param?.keeps ?? defaults.keeps, MIN_KEEPS)
     }
 
-    /** @param {KEEPS_BEHAVIOUR} value */
-    setKeepsBehaviour(value) {
+    /** @param {KEEPS_BEHAVIOR} value */
+    setKeepsBehavior(value) {
         if (!this.param) return
 
-        const validValues = Object.values(KEEPS_BEHAVIOUR)
+        const validValues = Object.values(KEEPS_BEHAVIOR)
         if (typeof value === "string" && validValues.includes(value)) {
-            if (value === this.param.keepsBehaviour) return
-            this.param.keepsBehaviour = value
+            if (value === this.param.keepsBehavior) return
+            this.param.keepsBehavior = value
             this.firstRangeAvgCalculated = false
             this.checkRange(this.range.start, this.range.end)
         } else {
-            this.logError('updateParam()', logMsgs.paramInvalidVal, 'keepsBehaviour', value,
+            this.logError('updateParam()', logMsgs.paramInvalidVal, 'keepsBehavior', value,
                 'should use one of these:', validValues.join(', ')
             )
         }
     }
 
     /**
-     * @returns {number} calculated keeps value based on current keepsBehaviour calculation
+     * @returns {number} calculated keeps value based on current keepsBehavior calculation
      */
     getKeepsCalculated() {
-        if (!this.param || this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AS_IS) {
-            // if keepsBehaviour is "as-is", we don't calculate keeps
+        if (!this.param || this.param.keepsBehavior === KEEPS_BEHAVIOR.AS_IS) {
+            // if keepsBehavior is "as-is", we don't calculate keeps
             return this.getKeeps()
         }
         return Math.max(this.getKeeps(), this.keepsCalculated)
@@ -1208,7 +1208,7 @@ class Virtual {
                 range
             })
         } else if (
-            this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AUTO_ADJUST &&
+            this.param.keepsBehavior === KEEPS_BEHAVIOR.AUTO_ADJUST &&
             this._rangeSizeHistory.length >= historyLen &&
             desiredFillSize < Math.max(...this._rangeSizeHistory) &&
             desiredFillSize - this.getEstimateSize() * tolerance < rangeSize
@@ -1228,7 +1228,7 @@ class Virtual {
     renderNeededForIncrease(desiredFillSize, rangeSize, range) {
         if (!this.param) return false
 
-        if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AS_IS) {
+        if (this.param.keepsBehavior === KEEPS_BEHAVIOR.AS_IS) {
             return false
         }
 
@@ -1245,11 +1245,11 @@ class Virtual {
         return false
     }
     /**
-     * check whether need render more items to fill the viewport according to the current keepsBehaviour
+     * check whether need render more items to fill the viewport according to the current keepsBehavior
     */
     checkRendered() {
         if (!this.param) return
-        if (this.param.keepsBehaviour === KEEPS_BEHAVIOUR.AS_IS) {
+        if (this.param.keepsBehavior === KEEPS_BEHAVIOR.AS_IS) {
             return
         }
         const range = { ...this.range }
@@ -1448,6 +1448,6 @@ class Virtual {
     }
 }
 
-Virtual.KEEPS_BEHAVIOUR = KEEPS_BEHAVIOUR
+Virtual.KEEPS_BEHAVIOR = KEEPS_BEHAVIOR
 
 export default Virtual
