@@ -5,9 +5,8 @@ types/
 lib/
 .idea/
 .DS_Store
-
+*.tgz
 yarn.lock
-
 .vscode/
 
 out/
