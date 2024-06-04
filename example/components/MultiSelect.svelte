@@ -272,13 +272,14 @@
     }
 
     .vs-multiselect-filter-search {
-        padding: 0.5rem 1rem;
+        padding: 0.5rem 1rem 0rem 1rem;
         background-color: #eee;
         display: flex;
         align-items: center;
     }
     .vs-multiselect-filter-search label {
         margin-right: 0.5rem;
+        font-size: 0.875rem;
     }
     .vs-multiselect-filter-search input {
         flex: 1;
@@ -292,6 +293,7 @@
         margin-left: 0.5rem;
         background: transparent;
         border: 0 none;
+        font-size: 0.875rem;
         padding: 0.5rem 0.25rem;
         cursor: pointer;
         text-decoration: underline

@@ -6,6 +6,7 @@ import css from "rollup-plugin-css-only"
 const production = !process.env.ROLLUP_WATCH
 
 function serve() {
+    /** @type {import("child_process").ChildProcess | undefined} */
     let server
 
     function toExit() {
@@ -17,12 +18,12 @@ function serve() {
             if (server) return
             server = require("child_process").spawn("npm", ["run", "start:dev", "--", "--dev"], {
                 stdio: ["ignore", "inherit", "inherit"],
-                shell: true,
+                shell: true
             })
 
             process.on("SIGTERM", toExit)
             process.on("exit", toExit)
-        },
+        }
     }
 }
 
@@ -32,23 +33,23 @@ export default {
         sourcemap: true,
         format: "es",
         name: "app",
-        file: "example/public/build/bundle.js",
+        file: "example/public/build/bundle.js"
     },
     plugins: [
         svelte({
             compilerOptions: {
-                dev: !production,
-            },
+                dev: !production
+            }
         }),
         css({output: "bundle.css"}),
         resolve({
             browser: true,
-            dedupe: ["svelte"],
+            dedupe: ["svelte"]
         }),
         !production && serve(),
-        !production && livereload("example/public"),
+        !production && livereload("example/public")
     ],
     watch: {
-        clearScreen: false,
-    },
+        clearScreen: false
+    }
 }
