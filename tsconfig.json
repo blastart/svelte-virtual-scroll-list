@@ -1,12 +1,12 @@
 {
     "extends": "@tsconfig/svelte/tsconfig.json",
     "exclude": ["node_modules", "lib", "example/public/build"],
-    "include": ["src/*", "example/components/*"],
+    "include": ["src/*", "src/components/*"],
     "compilerOptions": {
         "outDir": "lib",
         "baseUrl": ".",
         "paths": {
-            "components/*": ["example/components/*"],
+            "components/*": ["src/components/*"],
         },
         "allowJs": true,
         "checkJs": true,

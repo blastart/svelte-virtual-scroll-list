@@ -1,5 +1,7 @@
-
-import VirtualScroll from "./VirtualScroll.svelte"
+import VirtualScroll from './VirtualScroll.svelte'
+import MultiSelect from './components/MultiSelect.svelte'
+export { VirtualScroll, MultiSelect }
+export default VirtualScroll
 
 
 /**
@@ -44,6 +46,3 @@ import VirtualScroll from "./VirtualScroll.svelte"
 
 
 /** @typedef {import('./virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */
-
-export {VirtualScroll}
-export default VirtualScroll

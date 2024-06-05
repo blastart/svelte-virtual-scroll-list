@@ -13,9 +13,9 @@
         "virtual-multiselect",
         "virtual-scroll"
     ],
-    "version": "2.0.2",
+    "version": "2.0.8",
     "scripts": {
-        "tgz": "npm version patch && yarn pack && node ./moveTGZs.js",
+        "tgz": "npm --no-git-tag-version version patch && yarn pack && node ./moveTGZs.js",
         "release": "npm run build && npm version patch && yarn pack && node ./moveTGZs.js && git push --follow-tags",
         "build": "rollup -c rollup/rollup.config.js",
         "build:dev": "rollup -c rollup/rollup.config.dev.js",
@@ -33,12 +33,14 @@
     ],
     "exports": {
         ".": {
+            "svelte": "./src/index.js",
             "types": "./types/index.d.ts",
             "import": "./lib/index.mjs",
             "require": "./lib/index.js",
             "default": "./lib/index.mjs"
         },
         "./components": {
+            "svelte": "./src/components/index.js",
             "types": "./types/components.d.ts",
             "import": "./lib/components.mjs",
             "require": "./lib/components.js",
@@ -73,5 +75,5 @@
     "moduleOut": "./lib/",
     "types": "./types/index.d.ts",
     "componentsOut": "./lib/components.mjs",
-    "componentsIn": "./example/components/index.js"
+    "componentsIn": "./src/components/index.js"
 }
