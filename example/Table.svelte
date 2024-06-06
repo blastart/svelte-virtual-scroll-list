@@ -14,7 +14,7 @@
     /** @type {number} */
     export let keeps
 
-    /** @type {import('../src/virtual.js').KEEPS_BEHAVIOR} */
+    /** @type {import('../src/virtual').KEEPS_BEHAVIOR} */
     export let behavior
 
     /** @type {VirtualScroll} */

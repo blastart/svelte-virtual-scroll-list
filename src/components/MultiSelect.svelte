@@ -3,7 +3,7 @@
 </script>
 
 <script>
-    import VirtualScroll from "../../src/VirtualScroll.svelte"
+    import VirtualScroll from "../VirtualScroll.svelte"
     import { onMount } from 'svelte'
     /** @type {import('../../src/index').TypeDebugVirtualScroll} */
     export let debug
@@ -11,7 +11,7 @@
     /** @type {number | undefined} */
     export let keeps
 
-    /** @type {import('../../src/virtual.js').KEEPS_BEHAVIOR | undefined} */
+    /** @type {import('../../src/virtual').KEEPS_BEHAVIOR | undefined} */
     export let behavior
 
     /** @type {string | undefined | null} */

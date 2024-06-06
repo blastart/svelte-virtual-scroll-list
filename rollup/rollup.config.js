@@ -1,8 +1,11 @@
 import svelte from "rollup-plugin-svelte"
 import {sveld} from "sveld"
 // import pkg from "../package.json"
+import commonjs from '@rollup/plugin-commonjs';
+import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve'
 import sveltePreprocess from "svelte-preprocess"
+// import svelteDts from 'svelte-dts';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const pkg = require("../package.json")
@@ -34,6 +37,17 @@ const svelteConfig = {
 }
 
 
+const plugins = [
+    svelte(svelteConfig),
+    sveld({
+        typesOptions: {
+            outDir: 'types',
+        }
+    }),
+    commonjs(),
+    typescript(),
+    resolve(resolveConfig)
+]
 
 export default [
     {
@@ -49,16 +63,13 @@ export default [
             {
                 sourcemap: true,
                 format: "umd",
+                exports: "named",
                 name: "virtualScrollList",
                 file: pkg.moduleOut + 'index.js',
                 globals
             }
         ],
-        plugins: [
-            svelte(svelteConfig),
-            sveld(),
-            resolve(resolveConfig)
-        ]
+        plugins
     },
     {
         input: pkg.componentsIn,
@@ -73,15 +84,12 @@ export default [
             {
                 sourcemap: true,
                 format: "umd",
+                exports: "named",
                 name: "virtualScrollListComponents",
                 file: pkg.componentsOut.replace('.mjs', '.js'),
                 globals
             }
         ],
-        plugins: [
-            svelte(svelteConfig),
-            sveld(),
-            resolve(resolveConfig)
-        ]
+        plugins
     }
 ]

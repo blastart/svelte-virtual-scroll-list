@@ -1165,7 +1165,7 @@ class Virtual {
      * @param {{
      *  range: TypeRange,
      *  rangeSize: number,
-     *  lastChanged: import('./lib').TypeObjChangedResult[]
+     *  lastChanged: import('../src/lib').TypeObjChangedResult[]
      * }} param0
      * @param {unknown} logData
      */
@@ -1309,7 +1309,7 @@ class Virtual {
      * @param {TypeParam} param
      * @param {TypeRange} range
      * @param {number} rangeSize
-     * @returns {import('./lib').TypeObjChangedResult[]}
+     * @returns {import('../src/lib').TypeObjChangedResult[]}
      */
     getLastChanged(param, range, rangeSize) {
         const lastParam = this.last.param || {...defaults, uniqueIds: []}

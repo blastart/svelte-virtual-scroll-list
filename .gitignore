@@ -2,7 +2,7 @@
 /example/public/build/
 dist/
 types/
-lib/
+dist/
 .idea/
 .DS_Store
 *.tgz

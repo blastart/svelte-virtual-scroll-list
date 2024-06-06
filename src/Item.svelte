@@ -35,7 +35,7 @@
     export let index = null
 
     /**
-     * @type {import('./index').TypeItemType} [type] - type of the item
+     * @type {import('../src/index').TypeItemType} [type] - type of the item
      */
     export let type = "item"
 
@@ -62,7 +62,7 @@
     export let node = undefined
 
 
-    /** @type {import('./index').TypeResizeFnPassive | undefined | null} */
+    /** @type {import('../src/index').TypeResizeFnPassive | undefined | null} */
     export let onItemResizedPassive = null
 
     /**
@@ -96,7 +96,7 @@
         if (size === previousSize) return
 
         previousSize = size
-        /** @type {import('./index').TypeResizeEventDetail} */
+        /** @type {import('../src/index').TypeResizeEventDetail} */
         const detail = {id: uniqueKey, size, type, index}
         if (typeof onItemResizedPassive === "function") {
             // console.time("onItemResizedPassive_" + uniqueKey)

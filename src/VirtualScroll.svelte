@@ -6,10 +6,10 @@
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
 
 
-    /** @type {import('./index').TypeDebugVirtualScroll} */
+    /** @type {import('../src/index').TypeDebugVirtualScroll} */
     export let debug = false
 
-    /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
+    /** @type {import('../src/index').TypeUniqueKey} Unique key for getting data from `data` */
     export let key = "id"
 
     /** @type {string | null | undefined} Unique key for getting data from `data` */
@@ -24,32 +24,32 @@
     /** @type {string} css BEM / event namespacing */
     export let nameSpace = defaultNameSpace
 
-    /** @type {import('./index').TypeDataItem[]} Source for list */
+    /** @type {import('../src/index').TypeDataItem[]} Source for list */
     export let data
 
-    /** @type {import('./virtual').TypeKeeps | undefined}  */
+    /** @type {import('../src/virtual').TypeKeeps | undefined}  */
     export let keeps = undefined
 
-    /** @type {import('./virtual').TypeBuffer | undefined}  */
+    /** @type {import('../src/virtual').TypeBuffer | undefined}  */
     export let buffer = undefined
 
-    /** @type {import('./virtual').TypeSlotHeaderSize | undefined}  */
+    /** @type {import('../src/virtual').TypeSlotHeaderSize | undefined}  */
     export let slotHeaderSize = undefined
 
-    /** @type {import('./virtual').TypeSlotFooterSize | undefined}  */
+    /** @type {import('../src/virtual').TypeSlotFooterSize | undefined}  */
     export let slotFooterSize = undefined
 
-    /** @type {import('./virtual').TypeFillMaxSize | undefined}  */
+    /** @type {import('../src/virtual').TypeFillMaxSize | undefined}  */
     export let fillMaxSize = undefined
 
-    /** @type {import('./virtual').TypeFillSizeMultiplier | undefined}  */
+    /** @type {import('../src/virtual').TypeFillSizeMultiplier | undefined}  */
     export let fillSizeMultiplier = undefined
 
-    /** @type {import('./virtual').TypeAutoUpdateAverageSize | undefined}  */
+    /** @type {import('../src/virtual').TypeAutoUpdateAverageSize | undefined}  */
     export let autoAutoUpdateAverageSize = true
 
 
-    /** @type {import('./virtual').TypeEstimateSize | undefined } Estimate size of each item, needs for smooth scrollbar */
+    /** @type {import('../src/virtual').TypeEstimateSize | undefined } Estimate size of each item, needs for smooth scrollbar */
     export let estimateSize = undefined
 
     /** @type {boolean}  Scroll direction */
@@ -74,19 +74,19 @@
     export let bottomThreshold = 0
 
 
-    /** @type {import('./index').TypeElementProps} Props of root element */
+    /** @type {import('../src/index').TypeElementProps} Props of root element */
     export let propsRoot = {}
 
-    /** @type {import('./index').TypeElementProps} Props of list element */
+    /** @type {import('../src/index').TypeElementProps} Props of list element */
     export let propsList = {}
 
-    /** @type {import('./index').TypeElementProps} Props of item element */
+    /** @type {import('../src/index').TypeElementProps} Props of item element */
     export let propsItem = {}
 
-    /** @type {import('./index').TypeElementProps} Pros for the Item in the header slot */
+    /** @type {import('../src/index').TypeElementProps} Pros for the Item in the header slot */
     export let propsHeaderSlot = {}
 
-    /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
+    /** @type {import('../src/index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
     export let keepsBehavior = defaults.keepsBehavior
@@ -120,7 +120,7 @@
 
 
     /**
-     * @param {import('./index').TypeElementProps} elementProps
+     * @param {import('../src/index').TypeElementProps} elementProps
      * @returns {{tagName?: string, className?: string, restProps: Object<string, any>}}
      */
     const destructElementProps = (elementProps) => {
@@ -128,10 +128,10 @@
         return {tagName, className, restProps}
     }
 
-    /** @type  {import('./index').TypeDataItem[]} */
+    /** @type  {import('../src/index').TypeDataItem[]} */
     let displayItems = []
 
-    /** @type {import('./virtual').TypeRange} */
+    /** @type {import('../src/virtual').TypeRange} */
     let range
 
     /** create data to pass to each slot <slot let:slotData /> */
@@ -201,7 +201,7 @@
         })
     }
 
-    /**  @param {import('./index').TypeUniqueKey} id of item */
+    /**  @param {import('../src/index').TypeUniqueKey} id of item */
     export function getSize(id) {
         return virtual.sizes.get(id)
     }
@@ -365,7 +365,7 @@
      * param index available only for items
      * @typedef {(
      *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean, index?: number },
-     *  range: import('./virtual').TypeRange | null) => string
+     *  range: import('../src/virtual').TypeRange | null) => string
      * } TypeStyleCallback
      */
 
@@ -515,7 +515,7 @@
     }
 
 
-    /** @type {import('./index').TypeResizeFnPassive} */
+    /** @type {import('../src/index').TypeResizeFnPassive} */
     function onItemResizedPassive(detail, _native = false) {
         const {id, size, type} = detail
         // !_native && console.timeEnd("onItemResizedPassive_" + id)
@@ -535,7 +535,7 @@
 
 
     /**
-     * @param {import('./index').TypeResizeEvent | CustomEvent<any>} e
+     * @param {import('../src/index').TypeResizeEvent | CustomEvent<any>} e
     */
     function onItemResized(e) {
         // console.timeEnd("dispatchSizeChange_" + e.detail.id)

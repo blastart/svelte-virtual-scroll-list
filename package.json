@@ -13,7 +13,7 @@
         "virtual-multiselect",
         "virtual-scroll"
     ],
-    "version": "2.0.8",
+    "version": "2.0.20",
     "scripts": {
         "tgz": "npm --no-git-tag-version version patch && yarn pack && node ./moveTGZs.js",
         "release": "npm run build && npm version patch && yarn pack && node ./moveTGZs.js && git push --follow-tags",
@@ -27,7 +27,7 @@
         "url": "git+https://github.com/blastart/svelte-virtual-scroll-list.git"
     },
     "files": [
-        "lib",
+        "dist",
         "src",
         "types"
     ],
@@ -35,22 +35,24 @@
         ".": {
             "svelte": "./src/index.js",
             "types": "./types/index.d.ts",
-            "import": "./lib/index.mjs",
-            "require": "./lib/index.js",
-            "default": "./lib/index.mjs"
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "default": "./dist/index.mjs"
         },
         "./components": {
             "svelte": "./src/components/index.js",
             "types": "./types/components.d.ts",
-            "import": "./lib/components.mjs",
-            "require": "./lib/components.js",
-            "default": "./lib/components.mjs"
+            "import": "./dist/components.mjs",
+            "require": "./dist/components.js",
+            "default": "./dist/components.mjs"
         }
     },
     "devDependencies": {
         "@babel/core": "^7.20.5",
         "@babel/eslint-parser": "^7.19.1",
+        "@rollup/plugin-commonjs": "^25.0.8",
         "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-typescript": "^11.1.6",
         "@tsconfig/svelte": "^5.0.4",
         "@types/eslint": "8.56.10",
         "eslint": "^9.4.0",
@@ -63,8 +65,10 @@
         "sveld": "^0.20.0",
         "svelte": "^4.2.7",
         "svelte-check": "^3.6.0",
+        "svelte-dts": "^0.3.7",
         "svelte-eslint-parser": "^0.36.0",
         "svelte-preprocess": "^5.1.4",
+        "tslib": "^2.6.3",
         "typescript": "^5.0.0"
     },
     "peerDependencies": {
@@ -72,8 +76,9 @@
     },
     "type": "module",
     "svelte": "./src/index.js",
-    "moduleOut": "./lib/",
+    "moduleOut": "./dist/",
     "types": "./types/index.d.ts",
-    "componentsOut": "./lib/components.mjs",
-    "componentsIn": "./src/components/index.js"
+    "componentsOut": "./dist/components.mjs",
+    "componentsIn": "./src/components/index.js",
+    "dependencies": {}
 }
