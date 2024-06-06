@@ -1,6 +1,8 @@
 import VirtualScroll from './VirtualScroll.svelte'
 import MultiSelect from './components/MultiSelect.svelte'
 export { VirtualScroll, MultiSelect }
+export  * from './lib'
+
 export default VirtualScroll;
 
 /**

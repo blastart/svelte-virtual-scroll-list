@@ -42,6 +42,7 @@ export const getObjChangesByKeys = (aObj, bObj, keys = [], keyPrefix = '') => {
 
 /** @param {Object.<string, any>} obj */
 export const margeDefinedProps = obj => Object.fromEntries(
+    // eslint-disable-next-line no-unused-vars
     Object.entries(obj).filter(([_k, v]) => v !== undefined)
 )
 
@@ -128,4 +129,134 @@ export function rifFn(func, rifFallbackDelay = 40) {
             fallbackTimeout = setTimeout(timerFn, rifFallbackDelay)
         }
     }
+}
+
+
+
+/**
+* Creates ranges from a sequence of numbers.
+* @param {(number | string)[]} values - The array of numbers or numeric strings to create ranges from.
+* @returns {(number | [number, number])[]} - An array of either numbers or ranges represented as tuples.
+*/
+export const createRangesFromValues = (values = []) => {
+    /** @type {(number | [number, number])[]} */
+    const ranges = []
+    let start = -1
+    let end = -1
+
+    for (const element of values) {
+        const val = Number(element)
+        if (isNaN(val)) {
+            console.warn('createRanges: value is not a number', element, 'skipping')
+            continue
+        }
+        if (start === -1) {
+            start = val
+            end = val
+        } else if (val === end + 1) {
+            end = val
+        } else {
+            if (start === end) {
+                ranges.push(start)
+            } else {
+                ranges.push([start, end])
+            }
+            start = val
+            end = val
+        }
+    }
+    if (start !== -1) {
+        if (start === end) {
+            ranges.push(start)
+        } else {
+            ranges.push([start, end])
+        }
+    }
+    return ranges;
+};
+
+
+/**
+* Creates ranges from a sequence of numbers.
+* @param {(number | string)[]} values - The array of numbers or numeric strings to create ranges from.
+* @param {string} [valueSeparator] - The separator to use when joining the ranges.
+* @returns {string} - A string representation of the ranges. e.g. '1-3, 5, 7-9, 11'
+*/
+export const createRangeStringFromValues = (values = [], valueSeparator = ',') => {
+    const ranges = createRangesFromValues(values)
+    return ranges.map(range => {
+        if (Array.isArray(range)) {
+            return `${range[0]}-${range[1]}`
+        }
+        return range + ''
+    }).join(valueSeparator)
+}
+
+
+/**
+* Creates ranges from a sequence of numbers.
+* @param {(number | [number, number])[]} ranges - An array of either numbers or ranges represented as tuples.
+* @returns {number[]} - The array of numbers created from the ranges.
+*/
+export const createValuesFromRanges = (ranges = []) => {
+    /** @type {number[]} */
+    const values = []
+    for (const range of ranges) {
+        if (Array.isArray(range)) {
+            const [start, end] = range
+            for (let i = start; i <= end; i++) {
+                values.push(i)
+            }
+        } else {
+            values.push(range)
+        }
+    }
+    return values
+}
+
+/**
+ * Creates values from a range string using
+ * @param {string} rangeStr - The string representation of the ranges. e.g. '1-3, 5, 7-9, 11'
+ * @param {string} [valueSeparator] - The separator to use when splitting the ranges.
+ * @returns {number[]} - The array of numbers created from the ranges.
+ */
+export const createValuesFromRangeString = (rangeStr = '', valueSeparator = ',') => {
+    const ranges = rangeStr.split(valueSeparator).map(r => r.trim()).filter(r => r.length > 0)
+    const values = []
+    for (const range of ranges) {
+        const parts = range.split('-').map(p => p.trim()).filter(p => p.length > 0)
+        if (parts.length === 1) {
+            values.push(Number(parts[0]))
+        } else if (parts.length === 2) {
+            const start = Number(parts[0])
+            const end = Number(parts[1])
+            if (isNaN(start) || isNaN(end)) {
+                console.warn('createValuesFromRangeString: start or end is not a number', range, 'skipping')
+                continue
+            }
+            for (let i = start; i <= end; i++) {
+                values.push(i)
+            }
+        } else {
+            console.warn('createValuesFromRangeString: invalid range', range, 'skipping')
+        }
+    }
+    return values
+
+}
+
+
+export const testRangesFns = () => {
+    const testArray = [0, 1, 2, 3, 12, 42, 43, 44, 56, 98, 34, 35, 2]
+    const rangesRes = createRangesFromValues(testArray)
+    console.log('testRangesFns.rangesRes', rangesRes)
+    const valuesRes = createValuesFromRanges(rangesRes)
+    console.log('testRangesFns.valuesRes', valuesRes)
+    console.log('testRangesFns.diff', JSON.stringify(testArray) === JSON.stringify(valuesRes) ? 'PASSED' : 'FAILED')
+
+    const rangeStr = createRangeStringFromValues(testArray)
+    console.log('testRangesFns.rangeStr', rangeStr)
+    const valuesFromRangeStr = createValuesFromRangeString(rangeStr)
+    console.log('testRangesFns.valuesFromRangeStr', valuesFromRangeStr)
+    console.log('testRangesFns.diff', JSON.stringify(testArray) === JSON.stringify(valuesFromRangeStr) ? 'PASSED' : 'FAILED')
 }

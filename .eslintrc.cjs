@@ -36,10 +36,7 @@ module.exports = {
     rules: {
         'no-void': 'off',
         "svelte/valid-compile": "off",
-        '@typescript-eslint/no-unused-vars': [
-            'error',
-            { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
-        ],
+
         "arrow-spacing": ["error", {
             "before": true,
             "after": true
@@ -48,9 +45,20 @@ module.exports = {
         "prefer-const": ["warn"],
         "no-irregular-whitespace": "error",
         "block-spacing": ["error", "always"],
-        "no-unused-vars": ["error", {
-            "argsIgnorePattern": "^_"
-        }],
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            {
+                "argsIgnorePattern": '^_',
+                "varsIgnorePattern": '^_'
+            }
+        ],
+        "no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ],
         "no-self-assign": "warn",
         "brace-style": ["error", "1tbs", {
             "allowSingleLine": true

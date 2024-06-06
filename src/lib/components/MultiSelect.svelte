@@ -1,8 +1,14 @@
 <script context="module">
-    /** @typedef {{text: string, value: string, selected: boolean }} TypeItem */
+    /** @typedef {{text: string, value: string | number, selected: boolean }} TypeItem */
 </script>
 
 <script>
+    import {
+        createRangeStringFromValues,
+        createValuesFromRangeString,
+    } from '../lib'
+
+
     import { onMount } from 'svelte'
     import VirtualScroll from "../VirtualScroll.svelte"
     /** @type {import('../../lib/index').TypeDebugVirtualScroll | undefined} */
@@ -25,8 +31,12 @@
 
     /** @type {string | undefined} used as separator for the "value" */
     export let valueSeparator = ','
+    /** @type {boolean}  if true, it will use ranges for the selected items, highly recommended for large number of items
+     *  note: works only when "valueByItemsIndex" or "option.value" is a number
+     */
+    export let valueUseRanges = true
 
-    /** @type {TypeItem[]} option items {text: string, value: string, selected: boolean } */
+    /** @type {TypeItem[]} option items {text: string, value: string | number, selected: boolean } */
     export let items = []
 
     /** @type {string | undefined} */
@@ -53,15 +63,14 @@
 
     /** @param {string} value */
     const toggleItemSelected = (value) => {
-        items = items.map(item => {
-            if (item.value === value) {
-                return {
-                    ...item,
-                    selected: !item.selected
-                }
-            }
-            return item
-        })
+        // console.time('MultiSelect: toggle item');
+
+        const index = items.findIndex(item => item.value === value)
+        if (index === -1) return
+        items[index] = { ...items[index], selected: !items[index].selected }
+        items = items.slice(0)
+
+        // console.timeEnd('MultiSelect: toggle item')
     }
 
     /** @type {import('svelte/elements').MouseEventHandler<HTMLDivElement>} */
@@ -98,23 +107,45 @@
         items = items.map(item => ({ ...item, selected: false }))
     }
 
-    const getSortedItems = () => {
-        return items.sort((a, b) => {
+    const getSortedItems = (function() {
+        /**
+         * @param {TypeItem} a
+         * @param {TypeItem} b
+        */
+        const sortFn = (a, b) => {
             if (a.selected === b.selected) return 0
             return a.selected ? -1 : 1
-        })
-    }
+        }
+        return () => items.sort(sortFn)
+    })();
+
 
     const setInitialSelections = () => {
+        // console.time('MultiSelect: set initial selections')
         if (value && typeof value === 'string') {
-            const selectedValues = value.split(valueSeparator ?? ',')
-            items = items.map((item, index) => ({
-                ...item,
-                selected: valueByItemsIndex
-                    ? selectedValues.includes(index + '')
-                    : selectedValues.includes(item.value)
-            }))
+            const separator = valueSeparator ?? ','
+            const selectedValues = valueUseRanges
+                ? createValuesFromRangeString(value, separator)
+                : value.split(separator)
+            // console.log('setInitialSelections: selectedValues', selectedValues)
+            for (let i = 0; i < items.length; i++) {
+                const {value, selected = false} = items[i]
+
+                const newSelected =
+                    valueByItemsIndex
+                        ? selectedValues.indexOf(
+                             /** @type {never} */ (i)
+                        ) > -1
+                        : selectedValues.includes(
+                            /** @type {never} */ (value)
+                        )
+                if (newSelected !== selected) {
+                    items[i] = { ...items[i], selected: newSelected }
+                }
+            }
+            items = items.slice(0)
         }
+        // console.timeEnd('MultiSelect: set initial selections')
     }
 
     onMount(() => {
@@ -125,6 +156,7 @@
     })
 
     $: {
+        // console.time('MultiSelect: filter items')
         const filterVal = filterValue.trim().toLowerCase()
         const itemsSorted = sortSelectedFirst ? getSortedItems() : items
 
@@ -136,15 +168,33 @@
                 item.value.toString().includes(filterVal) // search in value
             ))
         }
+        // console.timeEnd('MultiSelect: filter items')
     }
+
     $: selectedItems = items.filter(item => item.selected)
 
 
     $: {
         if (mounted) {
-            value = selectedItems.map(
-                item => valueByItemsIndex ? items.indexOf(item) : item.value
-            ).join(valueSeparator)
+            // console.time('MultiSelect: set value')
+            const separator = valueSeparator ?? ','
+            const values = []
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].selected) {
+                    values.push(valueByItemsIndex ? i : items[i].value)
+                }
+            }
+            //
+            if (valueUseRanges && (
+                valueByItemsIndex || typeof items[0].value === 'number'
+            )) {
+                value = createRangeStringFromValues(values, separator)
+            }
+            else {
+                value = values.join(separator)
+            }
+
+            // console.timeEnd('MultiSelect: set value')
         }
     }
 
@@ -162,9 +212,11 @@
             </label>
         {/if}
     </slot>
-
-    <input type="hidden" name="selectedItems" bind:value={value} />
-
+    {#if debug}
+        <input type="text" readonly name="{id}-selectedItems"  bind:value={value} class="debug-input" title="debug view of hidden input value" />
+    {:else}
+        <input type="hidden" name="{id}-selectedItems"  bind:value={value} />
+    {/if}
     <div class="vs-multiselect-filter-search">
         <slot name="filter-search" {filterValue} {items} {filteredItems} {selectedItems} {selectAll} {unselectAll} {toggleItemSelected} {value} {valueSeparator}>
             <label for="filter"><slot name="filter-label">Filter:</slot></label>
@@ -203,6 +255,7 @@
             keepsBehavior={behavior}
             {...$$restProps}
             let:data
+            let:index
         >
             <!-- <this slot is used to render debug info, no need to use it in production -->
             <div slot="beforeList" let:slotData><slot name="appDebugInfo" {slotData} /></div>
@@ -237,6 +290,9 @@
                     </div>
                     <div class="vs-multiselect-item__text">
                         <slot name="item-text" {data}>
+                            {#if debug}
+                                <small class="debug-index">index: {index.toString().padStart((items.length + '').length , '0')}</small>
+                            {/if}
                             {data.text}
                         </slot>
                     </div>
@@ -360,5 +416,16 @@
         padding: 2em;
         text-align: center;
     }
-
+    .debug-index {
+        font-size: 0.75rem;
+        color: #999;
+        margin-right: 0.5rem;
+    }
+    .debug-input {
+        font-size: 0.875rem;
+        border: 1px solid #888;
+        margin: 0 1rem;
+        padding: 0 0.5rem;
+        background-color: #ccc;
+    }
 </style>

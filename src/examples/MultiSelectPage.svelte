@@ -1,10 +1,9 @@
 <script>
 	import MultiSelect from '../lib/components/MultiSelect.svelte'
 
-
     import {createSequenceGenerator, randomString} from "./mock"
     /** @type {import('../lib/index').TypeDebugVirtualScroll} */
-    export let debug
+    export let debug = true
 
     const getItemId = createSequenceGenerator()
     /** @type {number} */
@@ -14,7 +13,6 @@
     export let behavior
 
     const valueSeparator = ','
-
 
     function getItems(count = 10) {
         const new_items = []
@@ -29,9 +27,9 @@
     }
 
     /** @type {import('../lib/components/MultiSelect.svelte').TypeItem[]} */
-    const items = getItems(10000)
+    const items = getItems(50000)
     /** @type {string} comma separated list of selected items, or an array of strings */
-    let value = items.slice(0, 3).map(item => item.value).join(valueSeparator)
+    let value = '0,2,3, 14-30, 100-200, 300-400, 500-600, 700-800, 900-4000, 4005-5020, 40000-50000'
 </script>
 
 
