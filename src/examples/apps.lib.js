@@ -1,5 +1,8 @@
+import { browser } from "$app/environment"
+
 /** @param {string} name */
 export const getParam = name => {
+    if (!browser) return ""
     const url = new URL(window.location.href)
     return decodeURIComponent(url.searchParams.get(name) || "")
 }
@@ -9,6 +12,7 @@ export const getParam = name => {
  * @param {string} value URL.searchParams value
  */
 export const setParam = (name, value) => {
+    if (!browser) return
     const paramValue = encodeURIComponent(value)
     const url = new URL(window.location.href)
     url.searchParams.set(name, paramValue)
@@ -32,6 +36,7 @@ export const parseJSON = (str = '') => {
 /** Dispatch event on click outside of node */
 /** @param {HTMLElement & CustomEventInit<any>} node */
 export function useClickOutside(node) {
+    if (!browser) return
     /**
      * @param {MouseEvent} event
      */

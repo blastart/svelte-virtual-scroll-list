@@ -3,7 +3,7 @@
     import SimpleListStore from "./SimpleListStore.svelte"
     import InfiniteList from "./InfiniteList.svelte"
     import MultiSelect from "./MultiSelectPage.svelte"
-    import {KEEPS_BEHAVIOR, MIN_KEEPS, defaults} from "../src/virtual"
+    import {KEEPS_BEHAVIOR, MIN_KEEPS, defaults} from "../lib/virtual"
     import {getParam, setParam, isNumInRange, parseJSON, useClickOutside} from "./apps.lib"
     // import PageList from "./PageList.svelte"
     import Table from "./Table.svelte"
@@ -59,7 +59,7 @@
     }
 
     /**
-     * @param {import('../src/index').TypeDebugVirtualScroll} debug
+     * @param {import('../lib/index').TypeDebugVirtualScroll} debug
     */
     function validateDebug(debug) {
         const {efficiency = 0, info = 0, others = {showKeeps: true}} = (

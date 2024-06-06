@@ -1,12 +1,13 @@
-/node_modules/
-/example/public/build/
-dist/
-types/
-dist/
-.idea/
 .DS_Store
-*.tgz
-yarn.lock
-.vscode/
+node_modules
+/build
+/dist
+/.svelte-kit
+/package
+.env
+.env.*
+!.env.example
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
-out/
+releases/

@@ -44,4 +44,4 @@ export default VirtualScroll;
  */
 
 
-/** @typedef {import('../src/virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */
+/** @typedef {import('../lib/virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */

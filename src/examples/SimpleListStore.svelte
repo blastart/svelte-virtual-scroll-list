@@ -2,13 +2,13 @@
     import {tick} from "svelte"
     import {flip} from "svelte/animate"
     import {writable} from "svelte/store"
-    import VirtualScroll from "../src/VirtualScroll.svelte"
+    import VirtualScroll from "../lib/VirtualScroll.svelte"
     import {createSequenceGenerator, randomInteger} from "./mock"
     import TestItem from "./TestItem.svelte"
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
-    /** @type {import('../src/index').TypeDebugVirtualScroll} */
+    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
     export let debug
 
     const getItemId = createSequenceGenerator()
@@ -16,7 +16,7 @@
     /** @type {number} */
     export let keeps
 
-    /** @type {import('../src/virtual').KEEPS_BEHAVIOR} */
+    /** @type {import('../lib/virtual').KEEPS_BEHAVIOR} */
     export let behavior
 
     const items = writable([])

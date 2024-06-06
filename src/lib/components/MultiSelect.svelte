@@ -3,16 +3,16 @@
 </script>
 
 <script>
-    import VirtualScroll from "../VirtualScroll.svelte"
     import { onMount } from 'svelte'
-    /** @type {import('../../src/index').TypeDebugVirtualScroll} */
-    export let debug
+    import VirtualScroll from "../VirtualScroll.svelte"
+    /** @type {import('../../lib/index').TypeDebugVirtualScroll | undefined} */
+    export let debug = undefined
 
     /** @type {number | undefined} */
-    export let keeps
+    export let keeps = undefined
 
-    /** @type {import('../../src/virtual').KEEPS_BEHAVIOR | undefined} */
-    export let behavior
+    /** @type {import('../../lib/virtual').KEEPS_BEHAVIOR | undefined} */
+    export let behavior = undefined
 
     /** @type {string | undefined | null} */
     export let label = 'MultiSelect Component'
@@ -23,7 +23,7 @@
     /** @type {boolean | undefined} if true, instead of using comma separated "value", it will use the index of the selected items */
     export let valueByItemsIndex = false
 
-    /** @type {string} used as separator for the "value" */
+    /** @type {string | undefined} used as separator for the "value" */
     export let valueSeparator = ','
 
     /** @type {TypeItem[]} option items {text: string, value: string, selected: boolean } */
@@ -107,7 +107,7 @@
 
     const setInitialSelections = () => {
         if (value && typeof value === 'string') {
-            const selectedValues = value.split(valueSeparator)
+            const selectedValues = value.split(valueSeparator ?? ',')
             items = items.map((item, index) => ({
                 ...item,
                 selected: valueByItemsIndex
@@ -194,7 +194,7 @@
     <div class="vs-multiselect-options" style:--vs-multiselect-options-height={height}>
         <VirtualScroll
             bind:this={virtualScroll}
-            ariaRole="options"
+            ariaRole={'options'}
             id={id}
             debug={debug}
             data={filteredItems}

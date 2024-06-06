@@ -1,16 +1,16 @@
 <script>
-	import MultiSelect from '../src/components/MultiSelect.svelte'
+	import MultiSelect from '../lib/components/MultiSelect.svelte'
 
 
     import {createSequenceGenerator, randomString} from "./mock"
-    /** @type {import('../src/index').TypeDebugVirtualScroll} */
+    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
     export let debug
 
     const getItemId = createSequenceGenerator()
     /** @type {number} */
     export let keeps
 
-    /** @type {import('../src/virtual').KEEPS_BEHAVIOR} */
+    /** @type {import('../lib/virtual').KEEPS_BEHAVIOR} */
     export let behavior
 
     const valueSeparator = ','
@@ -28,7 +28,7 @@
         return new_items
     }
 
-    /** @type {import('../src/components/MultiSelect.svelte').TypeItem[]} */
+    /** @type {import('../lib/components/MultiSelect.svelte').TypeItem[]} */
     const items = getItems(10000)
     /** @type {string} comma separated list of selected items, or an array of strings */
     let value = items.slice(0, 3).map(item => item.value).join(valueSeparator)
@@ -38,8 +38,8 @@
 <div class="multiselect-example">
 
     <MultiSelect {debug} {keeps} {behavior} {items} bind:value={value} {valueSeparator} valueByItemsIndex={true}>
-       <slot slot="appDebugInfo" let:slotData>
+        <slot slot="appDebugInfo" let:slotData>
             <slot name="appDebugInfo" {slotData} />
-       </slot>
+        </slot>
     </MultiSelect>
 </div>

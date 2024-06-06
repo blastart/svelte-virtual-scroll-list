@@ -1,36 +1,45 @@
 module.exports = {
     root: true,
-    parser: '@babel/eslint-parser',
-    plugins: [],
     extends: [
-        "eslint:recommended",
-        'plugin:svelte/recommended'
+        'standard',
+        'eslint:recommended',
+        'plugin:@typescript-eslint/recommended',
+        'plugin:svelte/recommended',
+        'plugin:storybook/recommended',
+        'prettier',
     ],
-    ignorePatterns: ['*.cjs'],
-    overrides: [{
-        files: ["*.svelte"],
-        parser: "svelte-eslint-parser"
-    }, ],
+    parser: '@typescript-eslint/parser',
+    plugins: ['@typescript-eslint'],
+    parserOptions: {
+        sourceType: 'module',
+        ecmaVersion: 2020,
+        extraFileExtensions: ['.svelte']
+    },
     settings: {
 
     },
-    parserOptions: {
-        sourceType: 'module',
-        requireConfigFile: false,
-        ecmaVersion: 2021,
-        ecmaFeatures: {
-            globalReturn: false,
-            impliedStrict: false,
-            jsx: false
-        },
-    },
+
     env: {
         browser: true,
-        es2020: true,
+        es2017: true,
         node: true
     },
-    "rules": {
+    overrides: [
+        {
+            files: ['*.svelte'],
+            parser: 'svelte-eslint-parser',
+            parserOptions: {
+                parser: '@typescript-eslint/parser'
+            }
+        }
+    ],
+    rules: {
+        'no-void': 'off',
         "svelte/valid-compile": "off",
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+        ],
         "arrow-spacing": ["error", {
             "before": true,
             "after": true
