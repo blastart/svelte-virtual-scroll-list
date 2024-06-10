@@ -108,6 +108,14 @@
     /** @type {string | null}  aria-label for item */
     export let ariaLabelForItem = null
 
+    /**
+     * Every time when the list is rendered, the slotData is updated, this causes an update of any slot where the slotData exposed.
+     * To reduce unnecessary updates, you can list here only the necessary slot names where the slotData is really used.
+     * @example bindSlotDataTo={['header', 'footer']} // only bind slotData to header and footer slots
+     * @type {('beforeList' | 'afterList' | 'header' | 'footer' | 'empty')[] }
+     */
+    export let bindSlotDataTo = ['beforeList', 'afterList', 'header', 'footer', 'empty']
+
 
     /** Dispatching custom resize events from the item's resize observer
      * (This may have a slight negative impact on performance.)
@@ -516,10 +524,9 @@
 
 
     /** @type {import('../lib/index').TypeResizeFnPassive} */
+    // eslint-disable-next-line no-unused-vars
     function onItemResizedPassive(detail, _native = false) {
         const {id, size, type} = detail
-        // !_native && console.timeEnd("onItemResizedPassive_" + id)
-
         if (type === "item") {
             virtual.saveSize(id, size)
         } else if (type === "slot") {
@@ -724,7 +731,7 @@
 >
 
     {#if $$slots.beforeList}
-        <slot name="beforeList" slotData={slotData} />
+        <slot name="beforeList" slotData={bindSlotDataTo.includes('beforeList') ? slotData : undefined} />
     {/if}
 
     <!-- Root element -->
@@ -756,7 +763,7 @@
                 type="slot"
                 uniqueKey="header"
             >
-                <slot name="header" slotData={slotData} />
+                <slot name="header" slotData={bindSlotDataTo.includes('header') ? slotData : undefined} />
             </Item>
         {/if}
 
@@ -846,14 +853,14 @@
                 type="slot"
                 uniqueKey="footer"
             >
-                <slot name="footer" slotData={slotData} />
+                <slot name="footer" slotData={bindSlotDataTo.includes('footer') ? slotData : undefined} />
             </Item>
         {/if}
 
     </svelte:element>
 
     {#if $$slots.afterList}
-        <slot name="afterList" slotData={slotData} />
+        <slot name="afterList" slotData={bindSlotDataTo.includes('afterList') ? slotData : undefined} />
     {/if}
 
 </div>
