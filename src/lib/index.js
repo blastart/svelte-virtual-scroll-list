@@ -47,3 +47,11 @@ export default VirtualScroll;
 
 
 /** @typedef {import('../lib/virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */
+
+
+/**
+ * Every time when the list is rendered, the slotData is updated, this causes an update of any slot where the slotData exposed.
+ * To reduce unnecessary updates, you can list here only the necessary slot names where the slotData is really used.
+ * @example bindSlotDataTo={['header', 'footer']} // only bind slotData to header and footer slots
+ * @typedef {('beforeList' | 'afterList' | 'header' | 'footer' | 'empty')[] } TypeBindSlotDataTo
+ */
