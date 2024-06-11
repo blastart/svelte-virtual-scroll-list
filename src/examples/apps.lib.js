@@ -25,10 +25,15 @@ export const isNumInRange = (num = 0, min = -Infinity, max = +Infinity) => {
     }
 }
 
+/**
+ * @param {string} str
+ * @returns {any} 
+*/
 export const parseJSON = (str = '') => {
     try {
         return JSON.parse(str)
-    } catch (e) { return null }
+    // eslint-disable-next-line no-unused-vars
+    } catch (_err) { return null }
 }
 
 

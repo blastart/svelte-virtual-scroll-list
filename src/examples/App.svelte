@@ -10,7 +10,6 @@
     import ChangeableData from "./ChangeableData.svelte"
     let showOtherOptions = false
     let navPushState = true
-
     let pages = [
         {name: "Simple list", component: SimpleList},
         // {name: "Page mode", component: PageList},
@@ -58,18 +57,25 @@
         return '?' + params.toString()
     }
 
+
+
     /**
-     * @param {import('../lib/index').TypeDebugVirtualScroll} debug
+     * @param {import('../lib/index').TypeDebugVirtualScrollPartial} debug
+     * @returns {import('../lib/index').TypeDebugVirtualScrollRequired}
     */
     function validateDebug(debug) {
-        const {efficiency = 0, info = 0, others = {showKeeps: true}} = (
+        const {efficiency = 0, info = 0, others = {
+            showKeeps: true,
+            testSlotChild: false
+        }} = (
             typeof debug === "object" && debug ? debug : {}
         )
         return {
             efficiency: isNumInRange(efficiency, 0, 2) ? efficiency : 0,
             info: isNumInRange(info, 0, 2) ? info : 0,
-            others: others && typeof others?.showKeeps === "boolean" ? others : {
-                showKeeps: true
+            others: {
+                showKeeps:  typeof others?.showKeeps === "boolean" ? others.showKeeps : false,
+                testSlotChild: typeof others?.testSlotChild === "boolean" ? others.testSlotChild : false
             },
             logErrors: true
         }
@@ -85,7 +91,7 @@
     let pageMode = getParam("pageMode") ? getParam("pageMode") === "1" : true
     let keeps =  parseKeepsParam() || defaults.keeps
     let behavior = behaviors.includes(getParam("behavior")) ? getParam("behavior") : defaults.keepsBehavior
-    let debug = validateDebug(parseJSON(getParam("debug")))
+    let debug =  validateDebug(parseJSON(getParam("debug")))
 
 
     let testOffsetChange = false
@@ -111,8 +117,11 @@
         setParam("pageMode", pageMode ? "1" : "0")
         setParam("keeps", keeps + "")
         setParam("behavior", behavior)
-        setParam("debug", JSON.stringify(debug))
         debug = validateDebug(debug)
+        if (typeof debug === "object" && debug) {
+            setParam("debug", JSON.stringify(debug))
+        }
+
         document.documentElement.classList.toggle(
             "horizontal-mode", horizontalMode && !currentPage.horizontalModeNotSupported
         )
@@ -229,6 +238,11 @@
                     <label>
                         showKeeps <input name="showKeeps" type="checkbox" bind:checked={debug.others.showKeeps} />
                     </label>
+                    {#if currentPage.name === "Table"}
+                    <label>
+                        testSlotChild <input name="testSlotChild" type="checkbox" bind:checked={debug.others.testSlotChild} />
+                    </label>
+                    {/if}
                 </div>
                 {/if}
             </div>
@@ -277,7 +291,7 @@
     }
 
     label:hover {
-        color: var(--hihglight-color);
+        color: var(--highlight-color);
     }
 
     label input {
@@ -474,7 +488,7 @@
         border-radius: 12px;
         transform-origin: top left;
         transform: scale(2);
-        background-color: var(--hihglight-color);
+        background-color: var(--highlight-color);
         padding: 0.5rem 1rem;
         color: black;
         z-index: 100;

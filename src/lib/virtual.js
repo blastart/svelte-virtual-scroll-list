@@ -28,17 +28,28 @@ let logInfo = 0
 /** @type {boolean} - logEfficiency */
 let logErrors = true
 
-
 /**
- * @typedef {boolean | {
- *  efficiency?: TypeLogEfficiency,
- *  info?: TypeLogInfo,
- *  logErrors?: boolean
- * }} TypeDebugOptions
+ * @typedef {{
+ *  efficiency: TypeLogEfficiency,
+ *  info: TypeLogInfo,
+ *  logErrors: boolean
+ * }} TypeDebugOptionsPropsRequired
 */
 
 /**
- * @param {TypeDebugOptions} options
+ * @typedef {Partial<TypeDebugOptionsPropsRequired>} TypeDebugOptionsPropsPartial
+ */
+
+/**
+ * @typedef {boolean | TypeDebugOptionsPropsPartial} TypeDebugOptionsPartial
+*/
+
+/**
+ * @typedef {TypeDebugOptionsPropsRequired} TypeDebugOptionsRequired
+*/
+
+/**
+ * @param {TypeDebugOptionsPartial} options
 */
 
 export const setDebug = (options) => {
@@ -413,12 +424,13 @@ class Virtual {
     init(param, callUpdate, _calcType) {
         // param data
         /** @type {TypeParam | null} */
-        this.param = Object.assign({
+        this.param = {
             ...defaults,
             scrollTo: () => this.logError("scrollTo function is not defined in param"),
-            uniqueIds: []
+            uniqueIds: [],
             // TODO: validate params using updateParam()
-        }, (margeDefinedProps(param || {})))
+            ...(margeDefinedProps(param || {}))
+        }
         this.callUpdate = callUpdate
         this.bufferCalculated = this.param?.buffer || defaults.buffer
         // size data
@@ -498,7 +510,7 @@ class Virtual {
 
     getFrontSize() {
         if (typeof this.param?.pageModeOffset === "number" && this.param.pageModeOffset > 0) {
-            return this.param.pageModeOffset + this.param?.slotHeaderSize ?? 0
+            return this.param.pageModeOffset + (this.param?.slotHeaderSize ?? 0)
         }
         return this.param?.slotHeaderSize ?? 0
     }
@@ -829,9 +841,7 @@ class Virtual {
 
         let samePosCount = 0
         let sameClientSizeCount = 0
-
-        for (let i = 0; i < this._scrollPosHistory.length; i++) {
-            const h = this._scrollPosHistory[i]
+        for (const h of this._scrollPosHistory) {
             if (h.pos === posRounded) samePosCount += 1
             if (h.clientSize === clientSize) sameClientSizeCount += 1
         }
@@ -908,7 +918,7 @@ class Virtual {
      * @param {string} [_log] debug log
      * @returns
      */
-    handleFront(viewportChanged = false, _log) {
+    handleFront(viewportChanged = false, _log = "") {
         if (!this.param) return
         const overs = this.getScrollOvers()
 
@@ -937,7 +947,7 @@ class Virtual {
      * @param {string} [_log] debug log
      * @returns
      */
-    handleBehind(viewportChanged = false, _log) {
+    handleBehind(viewportChanged = false, _log = '') {
         if (!this.param) return
 
         const overs = this.getScrollOvers()
@@ -945,7 +955,7 @@ class Virtual {
         // range should not change if scroll overs within buffer
         // if (overs < this.range.start + this.getBufferCalculated() && !viewportChanged) {
         if (overs < this.range.start + this.getBufferCalculated() * BUFFER_RATIO && !viewportChanged) {
-            logEfficiency === 2 && console.warn('perf: handleBehind: range should not change if scroll overs within buffer')
+            logEfficiency === 2 && console.warn('perf: handleBehind: range should not change if scroll overs within buffer', _log)
             return
         }
 
@@ -1036,9 +1046,10 @@ class Virtual {
     /**
      * return  uniqueId by index
      * @param {number} index
+     * @returns {TypeUniqueId | undefined}
      */
     getIdByIndex(index) {
-        return this.param?.uniqueIds[index]
+        return this.param?.uniqueIds[index] ?? undefined
     }
 
     /**

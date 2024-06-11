@@ -6,10 +6,10 @@
     import {createEventDispatcher, onDestroy, onMount, tick} from "svelte"
 
 
-    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
+    /** @type {import('./index').TypeDebugVirtualScrollPartial} */
     export let debug = false
 
-    /** @type {import('../lib/index').TypeUniqueKey} Unique key for getting data from `data` */
+    /** @type {import('./index').TypeUniqueKey} Unique key for getting data from `data` */
     export let key = "id"
 
     /** @type {string | null | undefined} Unique key for getting data from `data` */
@@ -24,32 +24,32 @@
     /** @type {string} css BEM / event namespacing */
     export let nameSpace = defaultNameSpace
 
-    /** @type {import('../lib/index').TypeDataItem[]} Source for list */
+    /** @type {import('./index').TypeDataItem[]} Source for list */
     export let data
 
-    /** @type {import('../lib/virtual').TypeKeeps | undefined}  */
+    /** @type {import('./virtual').TypeKeeps | undefined}  */
     export let keeps = undefined
 
-    /** @type {import('../lib/virtual').TypeBuffer | undefined}  */
+    /** @type {import('./virtual').TypeBuffer | undefined}  */
     export let buffer = undefined
 
-    /** @type {import('../lib/virtual').TypeSlotHeaderSize | undefined}  */
+    /** @type {import('./virtual').TypeSlotHeaderSize | undefined}  */
     export let slotHeaderSize = undefined
 
-    /** @type {import('../lib/virtual').TypeSlotFooterSize | undefined}  */
+    /** @type {import('./virtual').TypeSlotFooterSize | undefined}  */
     export let slotFooterSize = undefined
 
-    /** @type {import('../lib/virtual').TypeFillMaxSize | undefined}  */
+    /** @type {import('./virtual').TypeFillMaxSize | undefined}  */
     export let fillMaxSize = undefined
 
-    /** @type {import('../lib/virtual').TypeFillSizeMultiplier | undefined}  */
+    /** @type {import('./virtual').TypeFillSizeMultiplier | undefined}  */
     export let fillSizeMultiplier = undefined
 
-    /** @type {import('../lib/virtual').TypeAutoUpdateAverageSize | undefined}  */
+    /** @type {import('./virtual').TypeAutoUpdateAverageSize | undefined}  */
     export let autoAutoUpdateAverageSize = true
 
 
-    /** @type {import('../lib/virtual').TypeEstimateSize | undefined } Estimate size of each item, needs for smooth scrollbar */
+    /** @type {import('./virtual').TypeEstimateSize | undefined } Estimate size of each item, needs for smooth scrollbar */
     export let estimateSize = undefined
 
     /** @type {boolean}  Scroll direction */
@@ -74,19 +74,19 @@
     export let bottomThreshold = 0
 
 
-    /** @type {import('../lib/index').TypeElementProps} Props of root element */
+    /** @type {import('./index').TypeElementProps} Props of root element */
     export let propsRoot = {}
 
-    /** @type {import('../lib/index').TypeElementProps} Props of list element */
+    /** @type {import('./index').TypeElementProps} Props of list element */
     export let propsList = {}
 
-    /** @type {import('../lib/index').TypeElementProps} Props of item element */
+    /** @type {import('./index').TypeElementProps} Props of item element */
     export let propsItem = {}
 
-    /** @type {import('../lib/index').TypeElementProps} Pros for the Item in the header slot */
+    /** @type {import('./index').TypeElementProps} Pros for the Item in the header slot */
     export let propsHeaderSlot = {}
 
-    /** @type {import('../lib/index').TypeElementProps} Pros for the Item in the footer slot */
+    /** @type {import('./index').TypeElementProps} Pros for the Item in the footer slot */
     export let propsFooterSlot = {}
 
     export let keepsBehavior = defaults.keepsBehavior
@@ -109,7 +109,7 @@
     export let ariaLabelForItem = null
 
     /**
-     * @type {import('../lib/index').TypeBindSlotDataTo}
+     * @type {import('./index').TypeBindSlotDataTo}
      */
     export let bindSlotDataTo = ['beforeList', 'afterList', 'header', 'footer', 'empty']
 
@@ -125,7 +125,7 @@
 
 
     /**
-     * @param {import('../lib/index').TypeElementProps} elementProps
+     * @param {import('./index').TypeElementProps} elementProps
      * @returns {{tagName?: string, className?: string, restProps: Object<string, any>}}
      */
     const destructElementProps = (elementProps) => {
@@ -133,13 +133,16 @@
         return {tagName, className, restProps}
     }
 
-    /** @type  {import('../lib/index').TypeDataItem[]} */
+    /** @type  {import('./index').TypeDataItem[]} */
     let displayItems = []
 
-    /** @type {import('../lib/virtual').TypeRange} */
+    /** @type {import('./virtual').TypeRange} */
     let range
 
-    /** create data to pass to each slot <slot let:slotData /> */
+    /**
+     * create data to pass to each slot <slot let:slotData />
+     * @return {import('./index').TypeSlotData}
+    */
     const getSlotData = () => ({
         isFixedType: virtual.isFixedType(),
         keepsCalculated: virtual.getKeepsCalculated(),
@@ -206,7 +209,7 @@
         })
     }
 
-    /**  @param {import('../lib/index').TypeUniqueKey} id of item */
+    /**  @param {import('./index').TypeUniqueKey} id of item */
     export function getSize(id) {
         return virtual.sizes.get(id)
     }
@@ -370,7 +373,7 @@
      * param index available only for items
      * @typedef {(
      *  viewModes: {tableView: boolean, isHorizontal: boolean, pageMode: boolean, index?: number },
-     *  range: import('../lib/virtual').TypeRange | null) => string
+     *  range: import('./virtual').TypeRange | null) => string
      * } TypeStyleCallback
      */
 
@@ -520,7 +523,7 @@
     }
 
 
-    /** @type {import('../lib/index').TypeResizeFnPassive} */
+    /** @type {import('./index').TypeResizeFnPassive} */
     // eslint-disable-next-line no-unused-vars
     function onItemResizedPassive(detail, _native = false) {
         const {id, size, type} = detail
@@ -539,7 +542,7 @@
 
 
     /**
-     * @param {import('../lib/index').TypeResizeEvent | CustomEvent<any>} e
+     * @param {import('./index').TypeResizeEvent | CustomEvent<any>} e
     */
     function onItemResized(e) {
         // console.timeEnd("dispatchSizeChange_" + e.detail.id)
@@ -760,7 +763,7 @@
                 type="slot"
                 uniqueKey="header"
             >
-                <slot name="header" slotData={bindSlotDataTo.includes('header') ? slotData : undefined} />
+                <slot name="header" slotData={bindSlotDataTo.includes('header') ? slotData : undefined}></slot>
             </Item>
         {/if}
 

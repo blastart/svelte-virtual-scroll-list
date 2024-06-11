@@ -2,7 +2,7 @@
 	import MultiSelect from '../lib/components/MultiSelect.svelte'
 
     import {createSequenceGenerator, randomString} from "./mock"
-    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
+    /** @type {import('../lib/index').TypeDebugVirtualScrollPartial} */
     export let debug = true
 
     const getItemId = createSequenceGenerator()

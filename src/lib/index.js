@@ -46,7 +46,8 @@ export default VirtualScroll;
  */
 
 
-/** @typedef {import('../lib/virtual').TypeDebugOptions & { others?: Record<string, boolean>}} TypeDebugVirtualScroll */
+/** @typedef {import('../lib/virtual').TypeDebugOptionsRequired & { others: Record<string, boolean>}} TypeDebugVirtualScrollRequired */
+/** @typedef {import('../lib/virtual').TypeDebugOptionsPartial & { others?: Record<string, boolean>}} TypeDebugVirtualScrollPartial */
 
 
 /**
@@ -54,4 +55,22 @@ export default VirtualScroll;
  * To reduce unnecessary updates, you can list here only the necessary slot names where the slotData is really used.
  * @example bindSlotDataTo={['header', 'footer']} // only bind slotData to header and footer slots
  * @typedef {('beforeList' | 'afterList' | 'header' | 'footer' | 'empty')[] } TypeBindSlotDataTo
+ */
+
+
+/**
+ * data type passed to each slot <slot let:slotData />
+ * @typedef {{
+ *  isFixedType: boolean,
+ *  keepsCalculated: number,
+ *  key: TypeUniqueKey,
+ *  nameSpace: string,
+ *  range: import('./virtual').TypeRange | null,
+ *  debug: TypeDebugVirtualScrollPartial,
+ *  data: TypeDataItem[],
+ *  displayItems: TypeDataItem[],
+ *  pageMode: boolean,
+ *  isHorizontal: boolean,
+ *  tableView: boolean,
+ * }} TypeSlotData
  */

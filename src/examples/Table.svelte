@@ -1,11 +1,15 @@
 <script>
     import VirtualScroll from "../lib/VirtualScroll.svelte"
+    import TestSlotChild from "./TestSlotChild.svelte"
     import {createSequenceGenerator, randomInteger, randomWord, randomString} from "./mock"
     export let horizontalMode = false
     export let pageMode = false
     export let fixSize = false
-    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
-    export let debug
+    /** @type {import('../lib/index').TypeDebugVirtualScrollPartial} */
+    export let debug = false
+
+    /** @type {import('../lib/index').TypeBindSlotDataTo} */
+    const bindSlotDataTo = ['afterList', 'beforeList', 'empty', 'footer', 'header']
 
     const getItemId = createSequenceGenerator()
 
@@ -82,6 +86,7 @@
         debug={debug}
         data={items}
         key="uniqueKey"
+        bindSlotDataTo={bindSlotDataTo}
         keeps={keeps}
         keepsBehavior={behavior}
         let:data
@@ -94,12 +99,13 @@
 
         <th slot="empty" colspan={cells.length}><div style="padding: 2em; text-align: center;">No items</div></th>
 
-        <tr slot="header">
+        <tr slot="header" let:slotData>
             {#each cells as cell}
                 <th style:width={cell.width ? `${cell.width}px` : null}>
                     <div class="cell-inner">{cell.label}</div>
                 </th>
             {/each}
+            {#if debug?.others?.testSlotChild}<TestSlotChild slotData={slotData} nameOfSlot="header" /> {/if}
         </tr>
 
         {#each cells as cell (cell.prop)}

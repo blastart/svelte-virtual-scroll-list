@@ -7,7 +7,7 @@
     export let pageMode = false
     export let fixSize = false
 
-    /** @type {import('../lib/index').TypeDebugVirtualScroll} */
+    /** @type {import('../lib/index').TypeDebugVirtualScrollPartial} */
     export let debug
     /** @type {number} */
     export let keeps

@@ -2,7 +2,7 @@
 	"name": "@blastart/svelte-virtual-scroll-list",
 	"description": "Svelte lib for virtualizing lists and tables",
 	"license": "MIT",
-	"version": "2.1.27",
+	"version": "2.1.28",
 	"author": {
 		"name": "blastart",
 		"url": "https://github.com/blastart"
