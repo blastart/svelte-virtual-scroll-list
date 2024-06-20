@@ -136,10 +136,10 @@ export function rifFn(func, rifFallbackDelay = 40) {
 /**
 * Creates ranges from a sequence of numbers.
 * @param {(number | string)[]} values - The array of numbers or numeric strings to create ranges from.
-* @returns {(number | [number, number])[]} - An array of either numbers or ranges represented as tuples.
+* @returns {import('./index').TypeRangesArray} - An array of either numbers or ranges represented as tuples.
 */
 export const createRangesFromValues = (values = []) => {
-    /** @type {(number | [number, number])[]} */
+    /** @type {import('./index').TypeRangesArray} */
     const ranges = []
     let start = -1
     let end = -1
@@ -178,12 +178,11 @@ export const createRangesFromValues = (values = []) => {
 
 /**
 * Creates ranges from a sequence of numbers.
-* @param {(number | string)[]} values - The array of numbers or numeric strings to create ranges from.
+* @param {(number | [number, number])[]} ranges - The array of either numbers or ranges represented as tuples.
 * @param {string} [valueSeparator] - The separator to use when joining the ranges.
 * @returns {string} - A string representation of the ranges. e.g. '1-3, 5, 7-9, 11'
 */
-export const createRangeStringFromValues = (values = [], valueSeparator = ',') => {
-    const ranges = createRangesFromValues(values)
+export const createRangeStringFromRangeArray = (ranges = [], valueSeparator = ',') => {
     return ranges.map(range => {
         if (Array.isArray(range)) {
             return `${range[0]}-${range[1]}`
@@ -193,13 +192,27 @@ export const createRangeStringFromValues = (values = [], valueSeparator = ',') =
 }
 
 
+
 /**
 * Creates ranges from a sequence of numbers.
-* @param {(number | [number, number])[]} ranges - An array of either numbers or ranges represented as tuples.
-* @returns {number[]} - The array of numbers created from the ranges.
+* @param {(number | string)[]} values - The array of numbers or numeric strings to create ranges from.
+* @param {string} [valueSeparator] - The separator to use when joining the ranges.
+* @returns {string} - A string representation of the ranges. e.g. '1-3, 5, 7-9, 11'
+*/
+export const createRangeStringFromValues = (values = [], valueSeparator = ',') => {
+    const ranges = createRangesFromValues(values)
+    return createRangeStringFromRangeArray(ranges, valueSeparator)
+}
+
+
+
+/**
+* Creates ranges from a sequence of numbers.
+* @param {import('./index').TypeRangesArray | (string | number)[]} ranges - An array of either numbers or ranges represented as tuples.
+* @returns {(number | string)[]} - The array of numbers created from the ranges.
 */
 export const createValuesFromRanges = (ranges = []) => {
-    /** @type {number[]} */
+    /** @type {(number | string)[]} */
     const values = []
     for (const range of ranges) {
         if (Array.isArray(range)) {

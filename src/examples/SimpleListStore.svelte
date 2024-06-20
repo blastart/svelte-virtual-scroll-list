@@ -100,7 +100,7 @@
         <TestItem horizontalMode={horizontalMode} {...data}>
             <var>key: {data.uniqueKey}</var>
             <var>set: {data.size}</var>
-            <var>calc: {list?.getSize(data.uniqueKey) || 'n/a'}</var>
+            <var>calc: {list?.getSizeByIndex && list.getSizeByIndex(data.uniqueKey) || 'n/a'}</var>
         </TestItem>
         <div slot="footer">
             This is a footer

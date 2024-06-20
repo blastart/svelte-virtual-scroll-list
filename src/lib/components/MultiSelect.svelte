@@ -4,14 +4,16 @@
 
 <script>
     import {
-        createRangeStringFromValues,
+        createRangesFromValues,
+        createRangeStringFromRangeArray,
         createValuesFromRangeString,
+        createValuesFromRanges
     } from '../lib'
 
 
     import { onMount } from 'svelte'
     import VirtualScroll from "../VirtualScroll.svelte"
-    /** @type {import('../../lib/index').TypeDebugVirtualScroll | undefined} */
+    /** @type {import('../../lib/index').TypeDebugVirtualScrollPartial | undefined} */
     export let debug = undefined
 
     /** @type {number | undefined} */
@@ -25,6 +27,9 @@
 
     /** @type {string | undefined} comma separated list of selected items, you can set custom separator by setting "valueSeparator" */
     export let value = ''
+
+    /** @type {import('../../lib/index').TypeRangesArray | (string | number)[]} Ranges of selected items, works only when "valueByItemsIndex" or "option.value" is a number */
+    export let valueArray = []
 
     /** @type {boolean | undefined} if true, instead of using comma separated "value", it will use the index of the selected items */
     export let valueByItemsIndex = false
@@ -122,29 +127,34 @@
 
     const setInitialSelections = () => {
         // console.time('MultiSelect: set initial selections')
+        const separator = valueSeparator ?? ','
+        /** @type {(string | number)[]} */
+        let selectedValues = []
         if (value && typeof value === 'string') {
-            const separator = valueSeparator ?? ','
-            const selectedValues = valueUseRanges
+            selectedValues = valueUseRanges
                 ? createValuesFromRangeString(value, separator)
                 : value.split(separator)
-            // console.log('setInitialSelections: selectedValues', selectedValues)
-            for (let i = 0; i < items.length; i++) {
-                const {value, selected = false} = items[i]
-
-                const newSelected =
-                    valueByItemsIndex
-                        ? selectedValues.indexOf(
-                             /** @type {never} */ (i)
-                        ) > -1
-                        : selectedValues.includes(
-                            /** @type {never} */ (value)
-                        )
-                if (newSelected !== selected) {
-                    items[i] = { ...items[i], selected: newSelected }
-                }
-            }
-            items = items.slice(0)
         }
+        else if (valueArray && Array.isArray(valueArray)) {
+            selectedValues = createValuesFromRanges(valueArray)
+        }
+        // console.log('setInitialSelections: selectedValues', selectedValues)
+        for (let i = 0; i < items.length; i++) {
+            const {value, selected = false} = items[i]
+
+            const newSelected =
+                valueByItemsIndex
+                    ? selectedValues.indexOf(
+                            /** @type {never} */ (i)
+                    ) > -1
+                    : selectedValues.includes(
+                        /** @type {never} */ (value)
+                    )
+            if (newSelected !== selected) {
+                items[i] = { ...items[i], selected: newSelected }
+            }
+        }
+        items = items.slice(0)
         // console.timeEnd('MultiSelect: set initial selections')
     }
 
@@ -188,9 +198,12 @@
             if (valueUseRanges && (
                 valueByItemsIndex || typeof items[0].value === 'number'
             )) {
-                value = createRangeStringFromValues(values, separator)
+                valueArray = createRangesFromValues(values)
+                value = createRangeStringFromRangeArray(valueArray, separator)
+                // value = createRangeStringFromValues(values, separator)
             }
             else {
+                valueArray = values
                 value = values.join(separator)
             }
 

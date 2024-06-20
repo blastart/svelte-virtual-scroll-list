@@ -113,7 +113,7 @@
                 <div class="cell-inner" style="min-height: {data.height}px; min-width: {cell.width}px">
                     {#if cell.prop === "height"}
                         set: {data[cell.prop]} <br />
-                        calc: {list?.getSize(data.uniqueKey) || 'n/a'}
+                        calc: {list?.getSizeByIndex && list.getSizeByIndex(data.uniqueKey) || 'n/a'}
                     {:else}
                         {data[cell.prop]}
                     {/if}

@@ -59,6 +59,11 @@ export default VirtualScroll;
 
 
 /**
+ * @typedef {(number | [number, number])[]} TypeRangesArray
+ */
+
+
+/**
  * data type passed to each slot <slot let:slotData />
  * @typedef {{
  *  isFixedType: boolean,
