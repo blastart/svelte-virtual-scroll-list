@@ -26,7 +26,7 @@
         return new_items
     }
 
-    /** @type {import('../lib/components/MultiSelect.svelte').TypeItem[]} */
+    /** @type {import('../lib/index').TypeMultiSelectItem[]} */
     const items = getItems(50000)
 
     /** @type {import('../lib/index').TypeRangesArray} */

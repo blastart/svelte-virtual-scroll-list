@@ -79,3 +79,7 @@ export default VirtualScroll;
  *  tableView: boolean,
  * }} TypeSlotData
  */
+
+
+
+/** @typedef {{text: string, value: string | number, selected: boolean }} TypeMultiSelectItem */
