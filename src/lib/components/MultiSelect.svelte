@@ -1,5 +1,5 @@
 <script context="module">
-    /** @typedef {{text: string, value: string | number, selected: boolean }} TypeItem */
+    /** @typedef {{text: string, value: string | number, selected: boolean }} TypeMultiSelectItem */
 </script>
 
 <script>
@@ -41,7 +41,7 @@
      */
     export let valueUseRanges = true
 
-    /** @type {TypeItem[]} option items {text: string, value: string | number, selected: boolean } */
+    /** @type {TypeMultiSelectItem[]} option items {text: string, value: string | number, selected: boolean } */
     export let items = []
 
     /** @type {string | undefined} */
@@ -57,7 +57,7 @@
     export let filterValue = ''
 
 
-    /** @type {TypeItem[]} */
+    /** @type {TypeMultiSelectItem[]} */
     let filteredItems = items
 
     /** @type {VirtualScroll} */
@@ -114,8 +114,8 @@
 
     const getSortedItems = (function() {
         /**
-         * @param {TypeItem} a
-         * @param {TypeItem} b
+         * @param {TypeMultiSelectItem} a
+         * @param {TypeMultiSelectItem} b
         */
         const sortFn = (a, b) => {
             if (a.selected === b.selected) return 0
